@@ -66,7 +66,8 @@ class ServiceCoverageTest {
                 .map(permission -> permission.resource() + ":" + permission.action())
                 .collect(java.util.stream.Collectors.toSet());
         assertTrue(seededPermissions.containsAll(Set.of(
-                "alert:write", "audit:read", "scheduler:read", "scheduler:manage")));
+                "alert:write", "alert:read-recipients", "alert:manage-recipients",
+                "audit:read", "scheduler:read", "scheduler:manage")));
         verify(roles).assignAllPermissions(eq(response.tenantId()), any(UUID.class), eq(NOW));
         verify(users).replaceRoles(eq(response.tenantId()), eq(response.ownerUserId()), anySet(), eq(NOW));
 

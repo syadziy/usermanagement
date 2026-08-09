@@ -14,7 +14,8 @@ secara default melalui `APP_TIMEZONE=UTC`.
 - JWT RSA-SHA256 dengan issuer validation, audience, expiry tenant-specific, dan key ID.
 - Discovery metadata dan public JWKS untuk validasi token tanpa membagikan private key.
 - Permission granular seperti `user:view`, `user:create`, `user:download`, dan `user:upload`.
-- Bootstrap permission gateway `alert:write`, `audit:read`, `scheduler:read`, dan
+- Bootstrap permission gateway `alert:write`, `alert:read-recipients`,
+  `alert:manage-recipients`, `audit:read`, `scheduler:read`, dan
   `scheduler:manage` untuk role tenant owner.
 - Custom permission untuk resource/action milik tenant.
 - Role dapat memiliki banyak permission dan user dapat memiliki banyak role.
