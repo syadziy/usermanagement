@@ -15,7 +15,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +33,6 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('PERM_role:create')")
     public RoleResponse createRole(UUID tenantId, CreateRoleRequest request) {
         tenantAccessGuard.require(tenantId);
         Instant now = clock.instant();
@@ -47,7 +45,6 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    @PreAuthorize("hasAuthority('PERM_role:view')")
     public List<RoleResponse> findRoles(UUID tenantId) {
         tenantAccessGuard.require(tenantId);
         return roleRepository.findAll(tenantId).stream().map(IdentityMapper::toResponse).toList();
@@ -55,7 +52,6 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('PERM_role:edit')")
     public RoleResponse replacePermissions(UUID tenantId, UUID roleId, Set<String> permissions) {
         tenantAccessGuard.require(tenantId);
         Role role = roleRepository.findById(tenantId, roleId)
@@ -66,7 +62,6 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    @PreAuthorize("hasAuthority('PERM_permission:create')")
     public PermissionResponse createPermission(UUID tenantId, CreatePermissionRequest request) {
         tenantAccessGuard.require(tenantId);
         Permission permission = roleRepository.insertPermission(new Permission(UUID.randomUUID(), tenantId,
@@ -76,7 +71,6 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    @PreAuthorize("hasAuthority('PERM_permission:view')")
     public List<PermissionResponse> findPermissions(UUID tenantId) {
         tenantAccessGuard.require(tenantId);
         return roleRepository.findPermissions(tenantId).stream().map(IdentityMapper::toResponse).toList();

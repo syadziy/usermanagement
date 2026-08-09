@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +39,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('PERM_user:create')")
     public UserResponse create(UUID tenantId, CreateUserRequest request) {
         tenantAccessGuard.require(tenantId);
         Instant now = clock.instant();
@@ -51,7 +49,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @PreAuthorize("hasAuthority('PERM_user:view')")
     public List<UserResponse> findAll(UUID tenantId) {
         tenantAccessGuard.require(tenantId);
         List<UserAccount> users = userRepository.findAll(tenantId);
@@ -65,7 +62,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('PERM_role:assign')")
     public UserResponse assignRoles(UUID tenantId, UUID userId, Set<UUID> roleIds) {
         tenantAccessGuard.require(tenantId);
         UserAccount user = userRepository.findById(tenantId, userId)

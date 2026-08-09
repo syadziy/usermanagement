@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,6 +31,7 @@ public class UserController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('PERM_user:create')")
     public ResponseEntity<ResponseDTO<UserResponse>> create(
             @PathVariable UUID tenantId,
             @Valid @RequestBody CreateUserRequest request) {
@@ -39,11 +41,13 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('PERM_user:view')")
     public ResponseEntity<ResponseDTO<List<UserResponse>>> findAll(@PathVariable UUID tenantId) {
         return ResponseHelper.httpOK(userService.findAll(tenantId));
     }
 
     @PutMapping("/{userId}/roles")
+    @PreAuthorize("hasAuthority('PERM_role:assign')")
     public ResponseEntity<ResponseDTO<UserResponse>> assignRoles(
             @PathVariable UUID tenantId,
             @PathVariable UUID userId,

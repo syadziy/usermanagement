@@ -19,7 +19,7 @@ secara default melalui `APP_TIMEZONE=UTC`.
   `scheduler:manage` untuk role tenant owner.
 - Custom permission untuk resource/action milik tenant.
 - Role dapat memiliki banyak permission dan user dapat memiliki banyak role.
-- Spring method security melalui authority `PERM_<resource>:<action>`.
+- Spring method security pada controller melalui authority `PERM_<resource>:<action>`.
 - PostgreSQL, Flyway, Spring JDBC, Actuator, Prometheus, ECS logging, trace ID, dan OpenAPI.
 - Response envelope dan HTTP exception handling dari `sdk-util`.
 

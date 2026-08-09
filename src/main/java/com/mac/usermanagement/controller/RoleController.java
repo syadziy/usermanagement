@@ -13,6 +13,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,7 @@ public class RoleController {
     }
 
     @PostMapping("/roles")
+    @PreAuthorize("hasAuthority('PERM_role:create')")
     public ResponseEntity<ResponseDTO<RoleResponse>> createRole(
             @PathVariable UUID tenantId,
             @Valid @RequestBody CreateRoleRequest request) {
@@ -41,11 +43,13 @@ public class RoleController {
     }
 
     @GetMapping("/roles")
+    @PreAuthorize("hasAuthority('PERM_role:view')")
     public ResponseEntity<ResponseDTO<List<RoleResponse>>> findRoles(@PathVariable UUID tenantId) {
         return ResponseHelper.httpOK(roleService.findRoles(tenantId));
     }
 
     @PutMapping("/roles/{roleId}/permissions")
+    @PreAuthorize("hasAuthority('PERM_role:edit')")
     public ResponseEntity<ResponseDTO<RoleResponse>> replacePermissions(
             @PathVariable UUID tenantId,
             @PathVariable UUID roleId,
@@ -54,6 +58,7 @@ public class RoleController {
     }
 
     @PostMapping("/permissions")
+    @PreAuthorize("hasAuthority('PERM_permission:create')")
     public ResponseEntity<ResponseDTO<PermissionResponse>> createPermission(
             @PathVariable UUID tenantId,
             @Valid @RequestBody CreatePermissionRequest request) {
@@ -63,6 +68,7 @@ public class RoleController {
     }
 
     @GetMapping("/permissions")
+    @PreAuthorize("hasAuthority('PERM_permission:view')")
     public ResponseEntity<ResponseDTO<List<PermissionResponse>>> findPermissions(
             @PathVariable UUID tenantId) {
         return ResponseHelper.httpOK(roleService.findPermissions(tenantId));

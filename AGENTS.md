@@ -60,7 +60,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 - Return `ResponseDTO` through `ResponseHelper` and reuse SDK exception/logging/OpenAPI support.
 - A custom `SecurityFilterChain` is intentional because this service issues and validates its own
   JWT; do not enable the SDK security chain at the same time.
-- Use `@PreAuthorize` with `PERM_<resource>:<action>` for protected business operations.
+- Put `@PreAuthorize` with `PERM_<resource>:<action>` on protected controller endpoint methods.
+  Service implementations must not carry HTTP endpoint authorization annotations; they still own
+  business policy and tenant guards.
 - Keep client-facing messages in English and never expose hashes, tokens, SQL, or stack traces.
 - Organize every application YAML by major property group with a three-line uppercase banner.
 

@@ -24,7 +24,6 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,7 +80,6 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('PERM_tenant:update')")
     public void updateTokenPolicy(UUID tenantId, long ttlSeconds) {
         tenantAccessGuard.require(tenantId);
         tenantRepository.updateTokenTtl(tenantId, ttlSeconds);
