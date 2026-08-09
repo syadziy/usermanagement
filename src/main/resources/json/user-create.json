@@ -1,0 +1,10 @@
+{
+  "method": "POST",
+  "path": "/api/v1/tenants/11111111-1111-1111-1111-111111111111/users",
+  "requiredPermission": "user:create",
+  "request": {
+    "username": "report.operator",
+    "email": "operator@example.com",
+    "password": "replace-with-strong-password"
+  }
+}

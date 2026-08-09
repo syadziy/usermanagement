@@ -1,0 +1,10 @@
+{
+  "method": "POST",
+  "path": "/api/v1/tenants/11111111-1111-1111-1111-111111111111/roles",
+  "requiredPermission": "role:create",
+  "request": {
+    "name": "REPORT_OPERATOR",
+    "description": "Can view and download reports",
+    "permissions": ["report:view", "report:download"]
+  }
+}

@@ -1,0 +1,22 @@
+# =========================
+# LOCAL DATABASE
+# =========================
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/usermanagement}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+# =========================
+# LOCAL LOGGING
+# =========================
+sdk:
+  logging:
+    structured:
+      enabled: true
+      auto-configure-format: false
+
+logging:
+  structured:
+    format:
+      console: ""

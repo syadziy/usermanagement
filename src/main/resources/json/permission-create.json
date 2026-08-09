@@ -1,0 +1,10 @@
+{
+  "method": "POST",
+  "path": "/api/v1/tenants/11111111-1111-1111-1111-111111111111/permissions",
+  "requiredPermission": "permission:create",
+  "request": {
+    "resource": "report",
+    "action": "download",
+    "description": "Allows report downloads"
+  }
+}

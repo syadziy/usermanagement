@@ -1,0 +1,10 @@
+{
+  "method": "PATCH",
+  "path": "/api/v1/tenants/11111111-1111-1111-1111-111111111111/token-policy",
+  "requiredPermission": "tenant:update",
+  "request": {"accessTokenTtlSeconds": 3600},
+  "responseData": {
+    "tenantId": "11111111-1111-1111-1111-111111111111",
+    "accessTokenTtlSeconds": 3600
+  }
+}

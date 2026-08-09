@@ -1,0 +1,14 @@
+{
+  "service": "usermanagement",
+  "baseUrl": "http://localhost:9005",
+  "examples": [
+    {"operation": "registerTenant", "file": "tenant-register.json"},
+    {"operation": "login", "file": "login.json"},
+    {"operation": "updateTokenPolicy", "file": "token-policy.json"},
+    {"operation": "createUser", "file": "user-create.json"},
+    {"operation": "assignUserRoles", "file": "user-roles.json"},
+    {"operation": "createPermission", "file": "permission-create.json"},
+    {"operation": "createRole", "file": "role-create.json"},
+    {"operation": "replaceRolePermissions", "file": "role-permissions.json"}
+  ]
+}

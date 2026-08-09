@@ -1,0 +1,6 @@
+{
+  "method": "PUT",
+  "path": "/api/v1/tenants/11111111-1111-1111-1111-111111111111/roles/33333333-3333-3333-3333-333333333333/permissions",
+  "requiredPermission": "role:edit",
+  "request": {"permissions": ["report:view", "report:download"]}
+}
