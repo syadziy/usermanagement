@@ -53,6 +53,8 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 
 - Use Java 21, records for immutable contracts/models, constructor injection, `Instant`, and an
   injected `Clock`.
+- Use UTC for the JVM, JDBC session, persistence, logs, JWT timestamps, and API timestamps.
+  Regional conversion belongs only at an explicit presentation boundary.
 - Controllers validate and delegate; services own policy; repositories own SQL and row mapping.
 - Return `ResponseDTO` through `ResponseHelper` and reuse SDK exception/logging/OpenAPI support.
 - A custom `SecurityFilterChain` is intentional because this service issues and validates its own

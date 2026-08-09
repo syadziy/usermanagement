@@ -4,6 +4,9 @@
 melakukan registrasi tenant, autentikasi username/password, menerbitkan JWT dengan expiry berbeda
 untuk setiap tenant, serta mengelola role dan permission granular dalam format `resource:action`.
 
+JVM, JDBC session, persisted timestamps, logs, JWT claims, dan API timestamps menggunakan UTC
+secara default melalui `APP_TIMEZONE=UTC`.
+
 ## Fitur utama
 
 - Isolasi user, role, permission, dan policy berdasarkan `tenant_id`.
@@ -80,6 +83,19 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 
 Port default adalah `9005`. Salin `.env.example` ke environment lokal dan ganti `JWT_SECRET`.
 Jangan memakai default development secret pada shared environment atau production.
+
+## Docker
+
+Build JAR terlebih dahulu, kemudian buat runtime image Java 21:
+
+```bash
+mvn clean package
+docker build -t usermanagement:1.0.0 .
+docker run --rm --env-file .env -p 9005:9005 usermanagement:1.0.0
+```
+
+Isi `.env` dari `.env.example`, ganti seluruh secret, dan gunakan hostname service Docker untuk
+PostgreSQL atau dependency container lain. Image berjalan sebagai user non-root dan memakai UTC.
 
 ## REST API
 
