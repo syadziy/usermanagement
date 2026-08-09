@@ -71,6 +71,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requestCache(cache -> cache.disable())
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/internal/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/tenants").permitAll()
                         .requestMatchers("/.well-known/openid-configuration",
                                 "/.well-known/oauth-authorization-server", "/oauth2/jwks").permitAll()

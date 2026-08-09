@@ -225,6 +225,9 @@ Consumer tidak memerlukan private key; public key diperoleh dari JWKS dan dipili
 `permissions` dipetakan `sdk-util` menjadi authority `PERM_<resource>:<action>`. Claim `scope`
 memakai format ekuivalen `resource.action`, sehingga gateway memperoleh `SCOPE_resource.action`.
 
+Path `/internal/**` tidak memerlukan JWT. Jangan daftarkan path ini pada public ingress; gunakan
+network policy atau service mesh untuk membatasi akses hanya dari workload tepercaya.
+
 ## Database
 
 Flyway membuat tabel:
