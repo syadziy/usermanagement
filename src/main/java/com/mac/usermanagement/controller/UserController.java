@@ -1,7 +1,8 @@
 package com.mac.usermanagement.controller;
 
 import com.mac.sdk_util.entities.dto.ResponseDTO;
-import com.mac.sdk_util.utils.ResponseHelper;
+import com.mac.sdk_util.entities.constant.Role;
+import com.mac.sdk_util.helper.ResponseHelper;
 import com.mac.usermanagement.entities.dto.AssignRolesRequest;
 import com.mac.usermanagement.entities.dto.CreateUserRequest;
 import com.mac.usermanagement.entities.dto.UserResponse;
@@ -31,7 +32,7 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('PERM_user:create')")
+    @PreAuthorize(Role.USER_CREATE)
     public ResponseEntity<ResponseDTO<UserResponse>> create(
             @PathVariable UUID tenantId,
             @Valid @RequestBody CreateUserRequest request) {
@@ -41,13 +42,13 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('PERM_user:view')")
+    @PreAuthorize(Role.USER_VIEW)
     public ResponseEntity<ResponseDTO<List<UserResponse>>> findAll(@PathVariable UUID tenantId) {
         return ResponseHelper.httpOK(userService.findAll(tenantId));
     }
 
     @PutMapping("/{userId}/roles")
-    @PreAuthorize("hasAuthority('PERM_role:assign')")
+    @PreAuthorize(Role.ROLE_ASSIGN)
     public ResponseEntity<ResponseDTO<UserResponse>> assignRoles(
             @PathVariable UUID tenantId,
             @PathVariable UUID userId,

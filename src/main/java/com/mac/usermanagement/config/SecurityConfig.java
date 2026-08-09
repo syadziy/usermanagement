@@ -1,6 +1,6 @@
 package com.mac.usermanagement.config;
 
-import com.mac.sdk_util.utils.ResponseHelper;
+import com.mac.sdk_util.helper.ResponseHelper;
 import com.mac.usermanagement.config.properties.JwtProperties;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;

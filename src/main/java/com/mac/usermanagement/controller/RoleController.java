@@ -1,7 +1,8 @@
 package com.mac.usermanagement.controller;
 
 import com.mac.sdk_util.entities.dto.ResponseDTO;
-import com.mac.sdk_util.utils.ResponseHelper;
+import com.mac.sdk_util.entities.constant.Role;
+import com.mac.sdk_util.helper.ResponseHelper;
 import com.mac.usermanagement.entities.dto.CreatePermissionRequest;
 import com.mac.usermanagement.entities.dto.CreateRoleRequest;
 import com.mac.usermanagement.entities.dto.PermissionResponse;
@@ -33,7 +34,7 @@ public class RoleController {
     }
 
     @PostMapping("/roles")
-    @PreAuthorize("hasAuthority('PERM_role:create')")
+    @PreAuthorize(Role.ROLE_CREATE)
     public ResponseEntity<ResponseDTO<RoleResponse>> createRole(
             @PathVariable UUID tenantId,
             @Valid @RequestBody CreateRoleRequest request) {
@@ -43,13 +44,13 @@ public class RoleController {
     }
 
     @GetMapping("/roles")
-    @PreAuthorize("hasAuthority('PERM_role:view')")
+    @PreAuthorize(Role.ROLE_VIEW)
     public ResponseEntity<ResponseDTO<List<RoleResponse>>> findRoles(@PathVariable UUID tenantId) {
         return ResponseHelper.httpOK(roleService.findRoles(tenantId));
     }
 
     @PutMapping("/roles/{roleId}/permissions")
-    @PreAuthorize("hasAuthority('PERM_role:edit')")
+    @PreAuthorize(Role.ROLE_EDIT)
     public ResponseEntity<ResponseDTO<RoleResponse>> replacePermissions(
             @PathVariable UUID tenantId,
             @PathVariable UUID roleId,
@@ -58,7 +59,7 @@ public class RoleController {
     }
 
     @PostMapping("/permissions")
-    @PreAuthorize("hasAuthority('PERM_permission:create')")
+    @PreAuthorize(Role.PERMISSION_CREATE)
     public ResponseEntity<ResponseDTO<PermissionResponse>> createPermission(
             @PathVariable UUID tenantId,
             @Valid @RequestBody CreatePermissionRequest request) {
@@ -68,7 +69,7 @@ public class RoleController {
     }
 
     @GetMapping("/permissions")
-    @PreAuthorize("hasAuthority('PERM_permission:view')")
+    @PreAuthorize(Role.PERMISSION_VIEW)
     public ResponseEntity<ResponseDTO<List<PermissionResponse>>> findPermissions(
             @PathVariable UUID tenantId) {
         return ResponseHelper.httpOK(roleService.findPermissions(tenantId));

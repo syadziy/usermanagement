@@ -1,7 +1,8 @@
 package com.mac.usermanagement.controller;
 
 import com.mac.sdk_util.entities.dto.ResponseDTO;
-import com.mac.sdk_util.utils.ResponseHelper;
+import com.mac.sdk_util.entities.constant.Role;
+import com.mac.sdk_util.helper.ResponseHelper;
 import com.mac.usermanagement.entities.dto.RegisterTenantRequest;
 import com.mac.usermanagement.entities.dto.TenantResponse;
 import com.mac.usermanagement.entities.dto.UpdateTokenPolicyRequest;
@@ -37,7 +38,7 @@ public class TenantController {
     }
 
     @PatchMapping("/{tenantId}/token-policy")
-    @PreAuthorize("hasAuthority('PERM_tenant:update')")
+    @PreAuthorize(Role.TENANT_UPDATE)
     public ResponseEntity<ResponseDTO<Map<String, Object>>> updateTokenPolicy(
             @PathVariable UUID tenantId,
             @Valid @RequestBody UpdateTokenPolicyRequest request) {

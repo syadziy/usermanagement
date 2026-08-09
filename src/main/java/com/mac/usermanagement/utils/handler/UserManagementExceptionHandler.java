@@ -1,7 +1,7 @@
 package com.mac.usermanagement.utils.handler;
 
 import com.mac.sdk_util.entities.dto.ResponseDTO;
-import com.mac.sdk_util.utils.ResponseHelper;
+import com.mac.sdk_util.helper.ResponseHelper;
 import com.mac.usermanagement.utils.exception.IdentityConflictException;
 import com.mac.usermanagement.utils.exception.InvalidCredentialsException;
 import java.util.List;

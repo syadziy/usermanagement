@@ -1,7 +1,7 @@
 package com.mac.usermanagement.controller;
 
 import com.mac.sdk_util.entities.dto.ResponseDTO;
-import com.mac.sdk_util.utils.ResponseHelper;
+import com.mac.sdk_util.helper.ResponseHelper;
 import com.mac.usermanagement.entities.dto.LoginRequest;
 import com.mac.usermanagement.entities.dto.LoginResponse;
 import com.mac.usermanagement.service.AuthService;
