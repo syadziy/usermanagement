@@ -15,7 +15,8 @@ public final class AuthorizationCatalog {
             permission("role", "assign"), permission("permission", "view"),
             permission("permission", "create"),
             permission("alert", "write"), permission("alert", "read-recipients"),
-            permission("alert", "manage-recipients"), permission("audit", "read"),
+            permission("alert", "manage-recipients"), permission("alert", "read-notifications"),
+            permission("audit", "read"),
             permission("scheduler", "read"), permission("scheduler", "manage"));
 
     private AuthorizationCatalog() {}
