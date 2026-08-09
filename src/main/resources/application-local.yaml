@@ -8,6 +8,13 @@ spring:
     password: ${DB_PASSWORD:postgres}
 
 # =========================
+# LOCAL JWT
+# =========================
+usermanagement:
+  jwt:
+    generate-ephemeral-key: ${JWT_GENERATE_EPHEMERAL_KEY:true}
+
+# =========================
 # LOCAL LOGGING
 # =========================
 sdk:

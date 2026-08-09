@@ -9,7 +9,8 @@ Prioritas desain:
 
 - Semua identity dan authorization data terisolasi oleh `tenant_id`.
 - Password hanya disimpan sebagai BCrypt hash dan tidak pernah dilog.
-- JWT selalu memiliki issuer, subject, issued-at, expiry, dan tenant claim.
+- JWT RS256 selalu memiliki issuer, audience, subject, issued-at, expiry, tenant claim, dan `kid`.
+- Hanya service ini yang menyimpan private key; consumer memvalidasi melalui discovery dan JWKS.
 - Permission memakai format stabil `resource:action`.
 - Database constraint memperkuat tenant isolation dan uniqueness.
 - Service observable melalui ECS log, trace ID, Actuator, dan Prometheus.
@@ -76,7 +77,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 ## Authentication and Authorization
 
 - Passwords require at least 12 characters and are encoded with BCrypt strength 12.
-- JWT secrets belong in environment/secret management and must be at least 256 random bits.
+- JWT RSA private keys belong in environment/secret management and must be at least 2048 bits.
+- Ephemeral key generation is local-only; shared environments require stable keys and coordinated
+  rotation. Existing tokens become invalid when the currently published key is replaced.
 - Do not log passwords, hashes, JWTs, Authorization headers, or personal data unnecessarily.
 - Tenant-specific TTL must remain between 60 and 86,400 seconds.
 - Permission names are lowercase `resource:action`; role names are uppercase snake case.

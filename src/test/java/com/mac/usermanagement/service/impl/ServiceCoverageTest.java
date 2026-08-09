@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 import com.mac.sdk_util.exception.ResourceNotFoundException;
 import com.mac.usermanagement.config.properties.JwtProperties;
 import com.mac.usermanagement.config.properties.RegistrationProperties;
+import com.mac.usermanagement.entities.constant.AuthorizationCatalog;
 import com.mac.usermanagement.entities.dto.*;
 import com.mac.usermanagement.entities.model.*;
 import com.mac.usermanagement.repository.*;
@@ -15,12 +16,14 @@ import java.time.*;
 import java.util.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 
 class ServiceCoverageTest {
 
@@ -55,7 +58,15 @@ class ServiceCoverageTest {
 
         assertEquals("acme-id", response.tenantKey());
         assertEquals("ACME Indonesia", response.tenantName());
-        verify(roles).seedPermissions(eq(response.tenantId()), anyList(), eq(NOW));
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<AuthorizationCatalog.PermissionDefinition>> permissionsCaptor =
+                ArgumentCaptor.forClass(List.class);
+        verify(roles).seedPermissions(eq(response.tenantId()), permissionsCaptor.capture(), eq(NOW));
+        Set<String> seededPermissions = permissionsCaptor.getValue().stream()
+                .map(permission -> permission.resource() + ":" + permission.action())
+                .collect(java.util.stream.Collectors.toSet());
+        assertTrue(seededPermissions.containsAll(Set.of(
+                "alert:write", "audit:read", "scheduler:read", "scheduler:manage")));
         verify(roles).assignAllPermissions(eq(response.tenantId()), any(UUID.class), eq(NOW));
         verify(users).replaceRoles(eq(response.tenantId()), eq(response.ownerUserId()), anySet(), eq(NOW));
 
@@ -88,15 +99,28 @@ class ServiceCoverageTest {
         when(users.findAccess(TENANT_ID, USER_ID))
                 .thenReturn(new UserAccess(Set.of("TENANT_OWNER"), Set.of("tenant:update")));
         when(jwtEncoder.encode(any())).thenReturn(Jwt.withTokenValue("signed-token")
-                .header("alg", "HS256").subject(USER_ID.toString()).issuedAt(NOW)
+                .header("alg", "RS256").subject(USER_ID.toString()).issuedAt(NOW)
                 .expiresAt(NOW.plusSeconds(1800)).build());
         AuthServiceImpl service = new AuthServiceImpl(tenants, users, encoder, jwtEncoder,
-                new JwtProperties("http://issuer", "12345678901234567890123456789012"), CLOCK);
+                new JwtProperties("http://issuer/", "test-key", null, null, true,
+                        List.of("api-gateway")), CLOCK);
 
         LoginResponse response = service.login(new LoginRequest(" ACME-ID ", " owner ", "strong-password"));
         assertEquals("signed-token", response.accessToken());
         assertEquals(NOW.plusSeconds(1800), response.expiresAt());
         assertEquals(Set.of("tenant:update"), response.permissions());
+        ArgumentCaptor<JwtEncoderParameters> parametersCaptor =
+                ArgumentCaptor.forClass(JwtEncoderParameters.class);
+        verify(jwtEncoder).encode(parametersCaptor.capture());
+        JwtEncoderParameters parameters = parametersCaptor.getValue();
+        assertEquals("RS256", parameters.getJwsHeader().getAlgorithm().getName());
+        assertEquals("test-key", parameters.getJwsHeader().getKeyId());
+        assertEquals("http://issuer", parameters.getClaims().getIssuer().toString());
+        assertEquals(List.of("api-gateway"), parameters.getClaims().getAudience());
+        assertEquals(NOW, parameters.getClaims().getNotBefore());
+        assertEquals("tenant.update", parameters.getClaims().getClaim("scope"));
+        assertEquals(Set.of("TENANT_OWNER"), parameters.getClaims().getClaim("roles"));
+        assertEquals(Set.of("tenant:update"), parameters.getClaims().getClaim("permissions"));
 
         when(tenants.findByKey("missing")).thenReturn(Optional.empty());
         assertThrows(InvalidCredentialsException.class,
@@ -208,7 +232,7 @@ class ServiceCoverageTest {
     }
 
     private static Jwt jwt(String tenantId) {
-        return Jwt.withTokenValue("token").header("alg", "HS256").subject(USER_ID.toString())
+        return Jwt.withTokenValue("token").header("alg", "RS256").subject(USER_ID.toString())
                 .issuedAt(NOW).expiresAt(NOW.plusSeconds(60)).claim("tenant_id", tenantId).build();
     }
 }

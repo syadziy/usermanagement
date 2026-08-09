@@ -4,6 +4,8 @@
 spring:
   application:
     name: usermanagement
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   threads:
     virtual:
       enabled: true
@@ -36,7 +38,11 @@ server:
 usermanagement:
   jwt:
     issuer: ${JWT_ISSUER:http://localhost:9005}
-    secret: ${JWT_SECRET:change-this-development-secret-at-least-32-characters}
+    key-id: ${JWT_KEY_ID:usermanagement-local}
+    private-key: ${JWT_PRIVATE_KEY:}
+    public-key: ${JWT_PUBLIC_KEY:}
+    generate-ephemeral-key: ${JWT_GENERATE_EPHEMERAL_KEY:false}
+    audiences: ${JWT_AUDIENCES:api-gateway}
   registration:
     enabled: ${TENANT_REGISTRATION_ENABLED:true}
 

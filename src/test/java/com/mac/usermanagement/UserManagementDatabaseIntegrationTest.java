@@ -16,7 +16,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Testcontainers(disabledWithoutDocker = true)
 @SpringBootTest(properties = {
     "usermanagement.registration.enabled=false",
-    "usermanagement.jwt.secret=12345678901234567890123456789012"
+    "usermanagement.jwt.generate-ephemeral-key=true"
 })
 class UserManagementDatabaseIntegrationTest {
 

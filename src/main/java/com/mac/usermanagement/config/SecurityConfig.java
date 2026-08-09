@@ -2,12 +2,13 @@ package com.mac.usermanagement.config;
 
 import com.mac.sdk_util.utils.ResponseHelper;
 import com.mac.usermanagement.config.properties.JwtProperties;
-import java.nio.charset.StandardCharsets;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.proc.SecurityContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -22,7 +23,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -40,24 +41,23 @@ import tools.jackson.databind.ObjectMapper;
 public class SecurityConfig {
 
     @Bean
-    SecretKey jwtSecretKey(JwtProperties properties) {
-        return new SecretKeySpec(
-                properties.secret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+    RSAKey jwtRsaKey(JwtProperties properties) {
+        return JwtKeyFactory.create(properties);
     }
 
     @Bean
-    JwtEncoder jwtEncoder(SecretKey secretKey) {
-        return NimbusJwtEncoder.withSecretKey(secretKey).algorithm(MacAlgorithm.HS256).build();
+    JwtEncoder jwtEncoder(RSAKey rsaKey) {
+        return new NimbusJwtEncoder(new ImmutableJWKSet<SecurityContext>(new JWKSet(rsaKey)));
     }
 
     @Bean
-    JwtDecoder jwtDecoder(SecretKey secretKey, JwtProperties properties) {
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(secretKey)
-                .macAlgorithm(MacAlgorithm.HS256)
+    JwtDecoder jwtDecoder(RSAKey rsaKey, JwtProperties properties) throws Exception {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(rsaKey.toRSAPublicKey())
+                .signatureAlgorithm(SignatureAlgorithm.RS256)
                 .build();
         OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
                 new JwtTimestampValidator(),
-                new JwtIssuerValidator(properties.issuer()),
+                new JwtIssuerValidator(properties.normalizedIssuer()),
                 new JwtClaimValidator<String>("tenant_id", value -> value != null && !value.isBlank()));
         decoder.setJwtValidator(validator);
         return decoder;
@@ -72,6 +72,8 @@ public class SecurityConfig {
                 .requestCache(cache -> cache.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/tenants").permitAll()
+                        .requestMatchers("/.well-known/openid-configuration",
+                                "/.well-known/oauth-authorization-server", "/oauth2/jwks").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info/**", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**", "/error").permitAll()
                         .anyRequest().authenticated())

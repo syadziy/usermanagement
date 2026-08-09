@@ -1,0 +1,17 @@
+{
+  "method": "GET",
+  "path": "/oauth2/jwks",
+  "authentication": "public",
+  "response": {
+    "keys": [
+      {
+        "kty": "RSA",
+        "kid": "usermanagement-local",
+        "use": "sig",
+        "alg": "RS256",
+        "n": "base64url-modulus",
+        "e": "AQAB"
+      }
+    ]
+  }
+}

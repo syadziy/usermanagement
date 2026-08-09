@@ -16,10 +16,11 @@ import com.mac.usermanagement.utils.exception.InvalidCredentialsException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
@@ -59,12 +60,20 @@ public class AuthServiceImpl implements AuthService {
         UserAccess access = userRepository.findAccess(tenant.id(), user.id());
         Instant issuedAt = clock.instant();
         Instant expiresAt = issuedAt.plusSeconds(tenant.accessTokenTtlSeconds());
-        JwtClaimsSet claims = JwtClaimsSet.builder().issuer(jwtProperties.issuer()).issuedAt(issuedAt)
-                .expiresAt(expiresAt).subject(user.id().toString()).claim("username", user.username())
+        JwtClaimsSet claims = JwtClaimsSet.builder().issuer(jwtProperties.normalizedIssuer()).issuedAt(issuedAt)
+                .notBefore(issuedAt).expiresAt(expiresAt).subject(user.id().toString())
+                .claim("username", user.username())
                 .claim("tenant_id", tenant.id().toString()).claim("tenant_key", tenant.tenantKey())
-                .claim("roles", access.roles()).claim("permissions", access.permissions()).build();
+                .audience(jwtProperties.audiences())
+                .claim("roles", access.roles()).claim("permissions", access.permissions())
+                .claim("scope", access.permissions().stream()
+                        .map(permission -> permission.replace(':', '.'))
+                        .sorted()
+                        .collect(Collectors.joining(" ")))
+                .build();
         String token = jwtEncoder.encode(JwtEncoderParameters.from(
-                JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
+                JwsHeader.with(SignatureAlgorithm.RS256).keyId(jwtProperties.keyId()).build(), claims))
+                .getTokenValue();
         StructuredLog.info(LOG, "User authenticated", Map.of(
                 LogFields.EVENT_ACTION, "login", LogFields.EVENT_OUTCOME, LogFields.OUTCOME_SUCCESS,
                 LogFields.EVENT_DATASET, "usermanagement.authentication",

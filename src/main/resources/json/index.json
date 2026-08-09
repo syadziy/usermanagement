@@ -2,6 +2,8 @@
   "service": "usermanagement",
   "baseUrl": "http://localhost:9005",
   "examples": [
+    {"operation": "issuerDiscovery", "file": "issuer-discovery.json"},
+    {"operation": "publicJwks", "file": "jwks.json"},
     {"operation": "registerTenant", "file": "tenant-register.json"},
     {"operation": "login", "file": "login.json"},
     {"operation": "updateTokenPolicy", "file": "token-policy.json"},

@@ -11,18 +11,24 @@ secara default melalui `APP_TIMEZONE=UTC`.
 
 - Isolasi user, role, permission, dan policy berdasarkan `tenant_id`.
 - Registrasi tenant sekaligus membuat owner account tanpa default password.
-- JWT HMAC-SHA256 dengan issuer validation dan expiry tenant-specific.
+- JWT RSA-SHA256 dengan issuer validation, audience, expiry tenant-specific, dan key ID.
+- Discovery metadata dan public JWKS untuk validasi token tanpa membagikan private key.
 - Permission granular seperti `user:view`, `user:create`, `user:download`, dan `user:upload`.
+- Bootstrap permission gateway `alert:write`, `audit:read`, `scheduler:read`, dan
+  `scheduler:manage` untuk role tenant owner.
 - Custom permission untuk resource/action milik tenant.
 - Role dapat memiliki banyak permission dan user dapat memiliki banyak role.
 - Spring method security melalui authority `PERM_<resource>:<action>`.
 - PostgreSQL, Flyway, Spring JDBC, Actuator, Prometheus, ECS logging, trace ID, dan OpenAPI.
 - Response envelope dan HTTP exception handling dari `sdk-util`.
 
-## Batasan dibanding Keycloak
+## Peran sebagai issuer utama
 
-Service ini dapat menggantikan autentikasi username/password dan RBAC/action authorization dasar
-untuk internal microservices. Versi ini belum menyediakan identity federation, social login,
+Service ini menjadi issuer JWT utama untuk gateway dan service yang memakai `sdk-util`. Consumer
+mengambil public key melalui discovery/JWKS; hanya `usermanagement` yang menyimpan private key.
+
+Service ini menggantikan autentikasi username/password dan RBAC/action authorization dasar
+Keycloak untuk internal microservices. Versi ini belum menyediakan identity federation, social login,
 SAML, full OAuth2 authorization-code flow, user self-service, MFA, refresh token, token revocation,
 admin console, atau centralized session management seperti Keycloak.
 
@@ -59,7 +65,7 @@ Login (tenantKey + username + password)
       ├── resolve tenant and tenant-specific TTL
       ├── verify enabled tenant/user and BCrypt password
       ├── resolve roles + resource:action permissions
-      └── issue JWT containing tenant_id, roles, permissions, iat, exp
+      └── issue RS256 JWT containing aud, tenant_id, roles, permissions, scope, iat, exp
 
 Protected request
       │
@@ -81,8 +87,25 @@ createdb usermanagement
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Port default adalah `9005`. Salin `.env.example` ke environment lokal dan ganti `JWT_SECRET`.
-Jangan memakai default development secret pada shared environment atau production.
+Port default adalah `9005`. Profile `local` membuat RSA key sementara agar mudah dijalankan. Token
+lokal otomatis tidak valid setelah service restart. Shared environment dan production wajib
+menyediakan `JWT_PRIVATE_KEY` PKCS#8 dan `JWT_PUBLIC_KEY` X.509 dalam Base64 melalui secret manager,
+serta mematikan `JWT_GENERATE_EPHEMERAL_KEY`.
+
+Contoh membuat key production tanpa passphrase pada file runtime:
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out jwt-private.pem
+export JWT_PRIVATE_KEY="$(openssl pkcs8 -topk8 -nocrypt -in jwt-private.pem -outform DER | openssl base64 -A)"
+export JWT_PUBLIC_KEY="$(openssl pkey -in jwt-private.pem -pubout -outform DER | openssl base64 -A)"
+export JWT_KEY_ID="usermanagement-2026-01"
+export JWT_GENERATE_EPHEMERAL_KEY=false
+export SPRING_PROFILES_ACTIVE=production
+```
+
+Simpan nilai Base64 tersebut di secret manager dan hapus file PEM lokal secara aman sesuai prosedur
+operasional organisasi. `JWT_AUDIENCES` menerima daftar dipisahkan koma; default-nya
+`api-gateway`.
 
 ## Docker
 
@@ -135,6 +158,19 @@ Gunakan access token pada endpoint lain:
 Authorization: Bearer <accessToken>
 ```
 
+### Discovery dan JWKS
+
+Endpoint berikut public dan digunakan otomatis oleh `sdk-util` serta gateway:
+
+- `GET /.well-known/openid-configuration`
+- `GET /.well-known/oauth-authorization-server`
+- `GET /oauth2/jwks`
+
+`JWT_ISSUER` harus sama persis dengan nilai `iss` yang dapat diakses consumer. Contoh Docker network
+adalah `http://usermanagement:9005`; production sebaiknya memakai URL HTTPS stabil.
+Metadata ini ditujukan untuk discovery JWT/JWKS dan tidak menjadikan service sebagai implementasi
+OAuth2 authorization-code atau OpenID Connect yang lengkap.
+
 ### 3. Tenant token policy
 
 `PATCH /api/v1/tenants/{tenantId}/token-policy` membutuhkan `tenant:update`.
@@ -172,16 +208,21 @@ Role request memakai permission authority penuh:
   "username": "tenant.owner",
   "tenant_id": "tenant-uuid",
   "tenant_key": "acme-id",
+  "aud": ["api-gateway"],
   "roles": ["TENANT_OWNER"],
   "permissions": ["tenant:update", "user:create", "role:assign"],
+  "scope": "role.assign tenant.update user.create",
+  "nbf": 1786300000,
   "iat": 1786300000,
   "exp": 1786301800
 }
 ```
 
-Client tidak boleh mempercayai claim tanpa memverifikasi signature, issuer, dan expiry. Secret JWT
-yang sama dibutuhkan oleh service consumer jika masih menggunakan HMAC. Untuk deployment dengan
-banyak consumer atau trust boundary berbeda, migrasikan signing ke RSA/EC dan publikasikan JWKS.
+Client tidak boleh mempercayai claim tanpa memverifikasi signature, issuer, audience, dan expiry.
+Consumer tidak memerlukan private key; public key diperoleh dari JWKS dan dipilih berdasarkan `kid`.
+
+`permissions` dipetakan `sdk-util` menjadi authority `PERM_<resource>:<action>`. Claim `scope`
+memakai format ekuivalen `resource.action`, sehingga gateway memperoleh `SCOPE_resource.action`.
 
 ## Database
 
@@ -193,6 +234,10 @@ Flyway membuat tabel:
 - `permission`
 - `user_role`
 - `role_permission`
+
+Migration V2 menambahkan permission gateway alert/audit/scheduler untuk tenant yang sudah ada dan
+memasangkannya ke role sistem `TENANT_OWNER`. User perlu login kembali agar token baru membawa
+permission tersebut.
 
 Unique constraint dan foreign key komposit memastikan username/email unik per tenant serta
 mencegah assignment user, role, atau permission lintas tenant.
@@ -222,11 +267,12 @@ tidak tersedia.
 ## Production checklist
 
 - Set `TENANT_REGISTRATION_ENABLED=false` jika tenant tidak boleh mendaftar sendiri.
-- Simpan `JWT_SECRET`, database password, dan credential lain pada secret manager.
-- Gunakan secret acak minimal 256 bit dan lakukan rotation terencana.
+- Simpan `JWT_PRIVATE_KEY`, database password, dan credential lain pada secret manager.
+- Gunakan RSA minimal 2048 bit, key ID stabil, dan HTTPS. Versi ini memublikasikan satu signing key;
+  rotasi key akan membuat token lama tidak valid sehingga harus dikoordinasikan dengan login ulang.
 - Gunakan TLS untuk seluruh endpoint.
 - Batasi CORS dan Actuator pada jaringan/role operasional.
 - Tambahkan rate limiting dan account lockout pada login di gateway atau enhancement service.
 - Gunakan database role dengan least privilege dan backup terenkripsi.
-- Pertimbangkan asymmetric signing, JWKS, refresh-token rotation, revocation, MFA, dan audit event
-  sebelum menggantikan Keycloak untuk sistem berisiko tinggi.
+- Pertimbangkan refresh-token rotation, revocation, MFA, identity federation, dan audit event untuk
+  sistem berisiko tinggi.

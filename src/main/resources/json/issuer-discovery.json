@@ -1,0 +1,11 @@
+{
+  "method": "GET",
+  "path": "/.well-known/openid-configuration",
+  "authentication": "public",
+  "response": {
+    "issuer": "http://localhost:9005",
+    "jwks_uri": "http://localhost:9005/oauth2/jwks",
+    "subject_types_supported": ["public"],
+    "id_token_signing_alg_values_supported": ["RS256"]
+  }
+}
