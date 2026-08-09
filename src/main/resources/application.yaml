@@ -14,9 +14,9 @@ spring:
 # DATABASE
 # =========================
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/usermanagement}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    url: ${DB_URL:jdbc:postgresql://postgresdb:5432/usermanagement}
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin_macbook}
     hikari:
       connection-init-sql: SET TIME ZONE 'UTC'
       maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
