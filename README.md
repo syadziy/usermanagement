@@ -15,7 +15,7 @@ secara default melalui `APP_TIMEZONE=UTC`.
 - Discovery metadata dan public JWKS untuk validasi token tanpa membagikan private key.
 - Permission granular seperti `user:view`, `user:create`, `user:download`, dan `user:upload`.
 - Bootstrap permission gateway `alert:write`, `alert:read-recipients`,
-  `alert:manage-recipients`, `audit:read`, `scheduler:read`, dan
+  `alert:manage-recipients`, `alert:read-notifications`, `audit:read`, `scheduler:read`, dan
   `scheduler:manage` untuk role tenant owner.
 - Custom permission untuk resource/action milik tenant.
 - Role dapat memiliki banyak permission dan user dapat memiliki banyak role.
@@ -242,6 +242,10 @@ Flyway membuat tabel:
 Migration V2 menambahkan permission gateway alert/audit/scheduler untuk tenant yang sudah ada dan
 memasangkannya ke role sistem `TENANT_OWNER`. User perlu login kembali agar token baru membawa
 permission tersebut.
+
+Migration V4 menambahkan `alert:read-notifications` dan memasangkannya ke role sistem
+`TENANT_OWNER` yang sudah ada. User harus login kembali agar token baru dapat membuka koneksi
+notifikasi WebSocket.
 
 Unique constraint dan foreign key komposit memastikan username/email unik per tenant serta
 mencegah assignment user, role, atau permission lintas tenant.
