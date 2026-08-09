@@ -4,7 +4,7 @@ import java.util.List;
 
 public final class AuthorizationCatalog {
 
-    public static final String OWNER_ROLE = "TENANT_OWNER";
+    public static final String SUPERADMIN_ROLE = "SUPERADMIN";
     public static final List<PermissionDefinition> DEFAULT_PERMISSIONS = List.of(
             permission("tenant", "view"), permission("tenant", "update"),
             permission("user", "view"), permission("user", "create"),

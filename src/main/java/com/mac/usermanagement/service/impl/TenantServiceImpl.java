@@ -1,7 +1,7 @@
 package com.mac.usermanagement.service.impl;
 
 import static com.mac.usermanagement.entities.constant.AuthorizationCatalog.DEFAULT_PERMISSIONS;
-import static com.mac.usermanagement.entities.constant.AuthorizationCatalog.OWNER_ROLE;
+import static com.mac.usermanagement.entities.constant.AuthorizationCatalog.SUPERADMIN_ROLE;
 
 import com.mac.sdk_util.entities.constant.LogFields;
 import com.mac.sdk_util.utils.StructuredLog;
@@ -63,7 +63,7 @@ public class TenantServiceImpl implements TenantService {
                 request.tenantKey().trim().toLowerCase(), request.tenantName().trim(),
                 request.accessTokenTtlSeconds(), true, now));
         roleRepository.seedPermissions(tenant.id(), DEFAULT_PERMISSIONS, now);
-        Role ownerRole = roleRepository.insert(new Role(UUID.randomUUID(), tenant.id(), OWNER_ROLE,
+        Role ownerRole = roleRepository.insert(new Role(UUID.randomUUID(), tenant.id(), SUPERADMIN_ROLE,
                 "Full tenant administration access", true, Set.of(), now));
         roleRepository.assignAllPermissions(tenant.id(), ownerRole.id(), now);
         UserAccount owner = userRepository.insert(new UserAccount(UUID.randomUUID(), tenant.id(),

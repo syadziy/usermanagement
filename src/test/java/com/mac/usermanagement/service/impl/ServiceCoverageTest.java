@@ -39,7 +39,7 @@ class ServiceCoverageTest {
     }
 
     @Test
-    void registersTenantOwnerAndUpdatesPolicy() {
+    void registersTenantSuperadminAndUpdatesPolicy() {
         TenantRepository tenants = mock(TenantRepository.class);
         UserRepository users = mock(UserRepository.class);
         RoleRepository roles = mock(RoleRepository.class);
@@ -69,6 +69,10 @@ class ServiceCoverageTest {
                 "alert:write", "alert:read-recipients", "alert:manage-recipients",
                 "alert:read-notifications",
                 "audit:read", "scheduler:read", "scheduler:manage")));
+        ArgumentCaptor<Role> roleCaptor = ArgumentCaptor.forClass(Role.class);
+        verify(roles).insert(roleCaptor.capture());
+        assertEquals("SUPERADMIN", roleCaptor.getValue().name());
+        assertTrue(roleCaptor.getValue().systemRole());
         verify(roles).assignAllPermissions(eq(response.tenantId()), any(UUID.class), eq(NOW));
         verify(users).replaceRoles(eq(response.tenantId()), eq(response.ownerUserId()), anySet(), eq(NOW));
 
@@ -99,7 +103,7 @@ class ServiceCoverageTest {
         when(users.findByUsername(TENANT_ID, "owner")).thenReturn(Optional.of(user));
         when(encoder.matches("strong-password", "hash")).thenReturn(true);
         when(users.findAccess(TENANT_ID, USER_ID))
-                .thenReturn(new UserAccess(Set.of("TENANT_OWNER"), Set.of("tenant:update")));
+                .thenReturn(new UserAccess(Set.of("SUPERADMIN"), Set.of("tenant:update")));
         when(jwtEncoder.encode(any())).thenReturn(Jwt.withTokenValue("signed-token")
                 .header("alg", "RS256").subject(USER_ID.toString()).issuedAt(NOW)
                 .expiresAt(NOW.plusSeconds(1800)).build());
@@ -121,7 +125,7 @@ class ServiceCoverageTest {
         assertEquals(List.of("api-gateway"), parameters.getClaims().getAudience());
         assertEquals(NOW, parameters.getClaims().getNotBefore());
         assertEquals("tenant.update", parameters.getClaims().getClaim("scope"));
-        assertEquals(Set.of("TENANT_OWNER"), parameters.getClaims().getClaim("roles"));
+        assertEquals(Set.of("SUPERADMIN"), parameters.getClaims().getClaim("roles"));
         assertEquals(Set.of("tenant:update"), parameters.getClaims().getClaim("permissions"));
 
         when(tenants.findByKey("missing")).thenReturn(Optional.empty());

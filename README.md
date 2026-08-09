@@ -58,7 +58,7 @@ Register tenant
       │
       ├── tenant + tenant token TTL
       ├── default permission catalog
-      ├── TENANT_OWNER role with all permissions
+      ├── SUPERADMIN system role with all permissions
       └── owner user with BCrypt password
 
 Login (tenantKey + username + password)
@@ -210,7 +210,7 @@ Role request memakai permission authority penuh:
   "tenant_id": "tenant-uuid",
   "tenant_key": "acme-id",
   "aud": ["api-gateway"],
-  "roles": ["TENANT_OWNER"],
+  "roles": ["SUPERADMIN"],
   "permissions": ["tenant:update", "user:create", "role:assign"],
   "scope": "role.assign tenant.update user.create",
   "nbf": 1786300000,
@@ -244,8 +244,13 @@ memasangkannya ke role sistem `TENANT_OWNER`. User perlu login kembali agar toke
 permission tersebut.
 
 Migration V4 menambahkan `alert:read-notifications` dan memasangkannya ke role sistem
-`TENANT_OWNER` yang sudah ada. User harus login kembali agar token baru dapat membuka koneksi
-notifikasi WebSocket.
+`TENANT_OWNER` yang sudah ada. Migration V5 membuat role sistem `SUPERADMIN`, memberikan seluruh
+permission tenant, lalu memasangkannya ke user utama yang memegang `TENANT_OWNER`. Tenant baru
+langsung membuat user utama dengan role `SUPERADMIN`. User perlu login kembali agar JWT membawa
+role baru tersebut.
+
+V5 tidak membuat username atau password default. Credential user utama tetap berasal dari proses
+registrasi tenant dan password tetap disimpan sebagai BCrypt hash.
 
 Unique constraint dan foreign key komposit memastikan username/email unik per tenant serta
 mencegah assignment user, role, atau permission lintas tenant.

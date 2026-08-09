@@ -87,6 +87,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 - Do not log passwords, hashes, JWTs, Authorization headers, or personal data unnecessarily.
 - Tenant-specific TTL must remain between 60 and 86,400 seconds.
 - Permission names are lowercase `resource:action`; role names are uppercase snake case.
+- The primary user created during tenant registration owns the `SUPERADMIN` system role with all
+  tenant permissions. Existing `TENANT_OWNER` users are promoted by Flyway V5; never seed a
+  plaintext/default superadmin password in a migration.
 - Permission and role changes affect newly issued tokens; document any revocation enhancement.
 - Security changes require unauthenticated, forbidden, cross-tenant, expired-token, and permitted
   tests according to the changed behavior.
