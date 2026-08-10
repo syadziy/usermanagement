@@ -10,7 +10,8 @@ secara default melalui `APP_TIMEZONE=UTC`.
 ## Fitur utama
 
 - Isolasi user, role, permission, dan policy berdasarkan `tenant_id`.
-- Registrasi tenant sekaligus membuat owner account tanpa default password.
+- Registrasi tenant sekaligus membuat owner account tanpa password yang ditanam di source code.
+- Bootstrap awal `Syadziy Company` dengan owner `syadziy.owner` dari BCrypt hash environment.
 - JWT RSA-SHA256 dengan issuer validation, audience, expiry tenant-specific, dan key ID.
 - Discovery metadata dan public JWKS untuk validasi token tanpa membagikan private key.
 - Permission granular seperti `user:view`, `user:create`, `user:download`, dan `user:upload`.
@@ -85,8 +86,15 @@ mvn clean install
 cd ../usermanagement
 
 createdb usermanagement
+export DEFAULT_SUPERADMIN_PASSWORD_HASH="$(htpasswd -bnBC 12 syadziy 'replace-with-strong-password' | cut -d: -f2)"
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
+
+Pada database kosong, migration V6 membuat tenant `syadziy-company`, 22 permission, role
+`SUPERADMIN`, dan user `syadziy.owner` (`owner@syadziy.company`). Migration mewajibkan
+`DEFAULT_SUPERADMIN_PASSWORD_HASH` berupa BCrypt strength 12 dan tidak menyimpan plaintext
+password. Pada database existing, migration bersifat idempotent dan tidak mengganti password user
+yang sudah ada.
 
 Port default adalah `9005`. Profile `local` membuat RSA key sementara agar mudah dijalankan. Token
 lokal otomatis tidak valid setelah service restart. Shared environment dan production wajib

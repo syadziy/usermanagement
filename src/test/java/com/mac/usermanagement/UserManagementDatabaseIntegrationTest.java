@@ -77,7 +77,9 @@ class UserManagementDatabaseIntegrationTest {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         jdbcTemplate.execute("CREATE SCHEMA " + MIGRATION_TEST_SCHEMA);
         Flyway.configure().dataSource(dataSource).defaultSchema(MIGRATION_TEST_SCHEMA)
-                .schemas(MIGRATION_TEST_SCHEMA).locations("classpath:db/migration").target("4").load().migrate();
+                .schemas(MIGRATION_TEST_SCHEMA).locations("classpath:db/migration").target("4")
+                .placeholders(Map.of("defaultSuperadminPasswordHash", TEST_PASSWORD_HASH))
+                .load().migrate();
 
         UUID tenantId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
@@ -129,7 +131,12 @@ class UserManagementDatabaseIntegrationTest {
                 JOIN superadmin_migration_test.role role ON role.id = role_permission.role_id
                 WHERE role.tenant_id = ? AND role.name = 'SUPERADMIN'
                 """, Integer.class, tenantId);
+        Integer tenantPermissions = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*)
+                FROM superadmin_migration_test.permission
+                WHERE tenant_id = ?
+                """, Integer.class, tenantId);
         assertThat(assignedRoles).isEqualTo(1);
-        assertThat(assignedPermissions).isEqualTo(1);
+        assertThat(assignedPermissions).isEqualTo(tenantPermissions);
     }
 }

@@ -1,4 +1,4 @@
-CREATE TABLE tenant (
+CREATE TABLE IF NOT EXISTS tenant (
     id UUID PRIMARY KEY,
     tenant_key VARCHAR(64) NOT NULL UNIQUE,
     name VARCHAR(150) NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE tenant (
     created_at TIMESTAMPTZ NOT NULL
 );
 
-CREATE TABLE user_account (
+CREATE TABLE IF NOT EXISTS user_account (
     id UUID PRIMARY KEY,
     tenant_id UUID NOT NULL REFERENCES tenant(id),
     username VARCHAR(80) NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE user_account (
     CONSTRAINT uq_user_id_tenant UNIQUE (id, tenant_id)
 );
 
-CREATE TABLE role (
+CREATE TABLE IF NOT EXISTS role (
     id UUID PRIMARY KEY,
     tenant_id UUID NOT NULL REFERENCES tenant(id),
     name VARCHAR(80) NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE role (
     CONSTRAINT uq_role_id_tenant UNIQUE (id, tenant_id)
 );
 
-CREATE TABLE permission (
+CREATE TABLE IF NOT EXISTS permission (
     id UUID PRIMARY KEY,
     tenant_id UUID NOT NULL REFERENCES tenant(id),
     resource VARCHAR(80) NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE permission (
     CONSTRAINT uq_permission_id_tenant UNIQUE (id, tenant_id)
 );
 
-CREATE TABLE user_role (
+CREATE TABLE IF NOT EXISTS user_role (
     tenant_id UUID NOT NULL REFERENCES tenant(id),
     user_id UUID NOT NULL,
     role_id UUID NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE user_role (
     FOREIGN KEY (role_id, tenant_id) REFERENCES role(id, tenant_id)
 );
 
-CREATE TABLE role_permission (
+CREATE TABLE IF NOT EXISTS role_permission (
     tenant_id UUID NOT NULL REFERENCES tenant(id),
     role_id UUID NOT NULL,
     permission_id UUID NOT NULL,
@@ -63,8 +63,8 @@ CREATE TABLE role_permission (
     FOREIGN KEY (permission_id, tenant_id) REFERENCES permission(id, tenant_id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_user_tenant_enabled ON user_account (tenant_id, enabled);
-CREATE INDEX idx_role_tenant ON role (tenant_id);
-CREATE INDEX idx_permission_tenant ON permission (tenant_id);
-CREATE INDEX idx_user_role_tenant_user ON user_role (tenant_id, user_id);
-CREATE INDEX idx_role_permission_tenant_role ON role_permission (tenant_id, role_id);
+CREATE INDEX IF NOT EXISTS idx_user_tenant_enabled ON user_account (tenant_id, enabled);
+CREATE INDEX IF NOT EXISTS idx_role_tenant ON role (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_permission_tenant ON permission (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_user_role_tenant_user ON user_role (tenant_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_role_permission_tenant_role ON role_permission (tenant_id, role_id);
