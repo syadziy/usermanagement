@@ -5,7 +5,9 @@ import com.mac.usermanagement.entities.model.Permission;
 import com.mac.usermanagement.entities.model.Role;
 import com.mac.usermanagement.repository.RoleRepository;
 import com.mac.usermanagement.utils.exception.IdentityConflictException;
+import java.sql.Types;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -37,7 +39,8 @@ public class RoleRepositoryImpl implements RoleRepository {
                     """, new MapSqlParameterSource().addValue("id", role.id())
                     .addValue("tenantId", role.tenantId()).addValue("name", role.name())
                     .addValue("description", role.description()).addValue("systemRole", role.systemRole())
-                    .addValue("createdAt", role.createdAt()));
+                    .addValue("createdAt", role.createdAt().atOffset(ZoneOffset.UTC),
+                            Types.TIMESTAMP_WITH_TIMEZONE));
             return role;
         } catch (DuplicateKeyException exception) {
             throw new IdentityConflictException("Role name already exists in this tenant", exception);
@@ -53,7 +56,8 @@ public class RoleRepositoryImpl implements RoleRepository {
                     """, new MapSqlParameterSource().addValue("id", permission.id())
                     .addValue("tenantId", permission.tenantId()).addValue("resource", permission.resource())
                     .addValue("action", permission.action()).addValue("description", permission.description())
-                    .addValue("createdAt", permission.createdAt()));
+                    .addValue("createdAt", permission.createdAt().atOffset(ZoneOffset.UTC),
+                            Types.TIMESTAMP_WITH_TIMEZONE));
             return permission;
         } catch (DuplicateKeyException exception) {
             throw new IdentityConflictException("Permission already exists in this tenant", exception);
@@ -73,7 +77,9 @@ public class RoleRepositoryImpl implements RoleRepository {
         jdbcTemplate.update("""
                 INSERT INTO role_permission (tenant_id, role_id, permission_id, assigned_at)
                 SELECT :tenantId, :roleId, id, :assignedAt FROM permission WHERE tenant_id = :tenantId
-                """, Map.of("tenantId", tenantId, "roleId", roleId, "assignedAt", assignedAt));
+                """, new MapSqlParameterSource().addValue("tenantId", tenantId)
+                .addValue("roleId", roleId)
+                .addValue("assignedAt", assignedAt.atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE));
     }
 
     @Override
@@ -91,7 +97,8 @@ public class RoleRepositoryImpl implements RoleRepository {
                 Map.of("tenantId", tenantId, "roleId", roleId));
         MapSqlParameterSource[] batch = authorities.stream().map(authority -> new MapSqlParameterSource()
                 .addValue("tenantId", tenantId).addValue("roleId", roleId)
-                .addValue("permissionId", known.get(authority)).addValue("assignedAt", assignedAt))
+                .addValue("permissionId", known.get(authority))
+                .addValue("assignedAt", assignedAt.atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE))
                 .toArray(MapSqlParameterSource[]::new);
         jdbcTemplate.batchUpdate("""
                 INSERT INTO role_permission (tenant_id, role_id, permission_id, assigned_at)

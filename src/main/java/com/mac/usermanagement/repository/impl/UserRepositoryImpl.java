@@ -6,7 +6,9 @@ import com.mac.usermanagement.repository.UserRepository;
 import com.mac.usermanagement.utils.exception.IdentityConflictException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
@@ -112,7 +114,9 @@ public class UserRepositoryImpl implements UserRepository {
                 Map.of("tenantId", tenantId, "userId", userId));
         MapSqlParameterSource[] batch = roleIds.stream().map(roleId -> new MapSqlParameterSource()
                 .addValue("tenantId", tenantId).addValue("userId", userId)
-                .addValue("roleId", roleId).addValue("assignedAt", assignedAt)).toArray(MapSqlParameterSource[]::new);
+                .addValue("roleId", roleId)
+                .addValue("assignedAt", assignedAt.atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE))
+                .toArray(MapSqlParameterSource[]::new);
         jdbcTemplate.batchUpdate("""
                 INSERT INTO user_role (tenant_id, user_id, role_id, assigned_at)
                 VALUES (:tenantId, :userId, :roleId, :assignedAt)
@@ -127,7 +131,8 @@ public class UserRepositoryImpl implements UserRepository {
         return new MapSqlParameterSource().addValue("id", user.id()).addValue("tenantId", user.tenantId())
                 .addValue("username", user.username()).addValue("email", user.email())
                 .addValue("passwordHash", user.passwordHash()).addValue("enabled", user.enabled())
-                .addValue("createdAt", user.createdAt()).addValue("updatedAt", user.updatedAt());
+                .addValue("createdAt", user.createdAt().atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
+                .addValue("updatedAt", user.updatedAt().atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE);
     }
 
     private UserAccount map(ResultSet resultSet, int rowNumber) throws SQLException {

@@ -3,6 +3,7 @@ package com.mac.usermanagement;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import javax.sql.DataSource;
+import java.util.Map;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class UserManagementDatabaseIntegrationTest {
 
     private static final String MIGRATION_TEST_SCHEMA = "superadmin_migration_test";
+    private static final String TEST_PASSWORD_HASH =
+            "$2y$12$Sb.Wzw9Jhd3Z7u6JF70vjuHzDTppkyxYWQ1hyM8i5m1WaKBTp9Q7e";
 
     @Container
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:16-alpine");
@@ -32,6 +35,7 @@ class UserManagementDatabaseIntegrationTest {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+        registry.add("spring.flyway.placeholders.defaultSuperadminPasswordHash", () -> TEST_PASSWORD_HASH);
     }
 
     @Autowired DataSource dataSource;
@@ -45,10 +49,27 @@ class UserManagementDatabaseIntegrationTest {
                   AND table_name IN ('tenant', 'user_account', 'role', 'permission', 'user_role', 'role_permission')
                 """, Integer.class);
         assertThat(count).isEqualTo(6);
-        Boolean superadminMigrationApplied = jdbcTemplate.queryForObject("""
-                SELECT success FROM flyway_schema_history WHERE version = '5'
+        Boolean bootstrapMigrationApplied = jdbcTemplate.queryForObject("""
+                SELECT success FROM flyway_schema_history WHERE version = '6'
                 """, Boolean.class);
-        assertThat(superadminMigrationApplied).isTrue();
+        assertThat(bootstrapMigrationApplied).isTrue();
+
+        Map<String, Object> bootstrap = jdbcTemplate.queryForMap("""
+                SELECT tenant.tenant_key,
+                       COUNT(DISTINCT permission.id) AS permission_count,
+                       COUNT(DISTINCT role.id) AS role_count,
+                       COUNT(DISTINCT user_account.id) AS user_count
+                FROM tenant
+                LEFT JOIN permission ON permission.tenant_id = tenant.id
+                LEFT JOIN role ON role.tenant_id = tenant.id
+                LEFT JOIN user_account ON user_account.tenant_id = tenant.id
+                WHERE tenant.tenant_key = 'syadziy-company'
+                GROUP BY tenant.id, tenant.tenant_key
+                """);
+        assertThat(bootstrap.get("tenant_key")).isEqualTo("syadziy-company");
+        assertThat(((Number) bootstrap.get("permission_count")).intValue()).isEqualTo(22);
+        assertThat(((Number) bootstrap.get("role_count")).intValue()).isEqualTo(1);
+        assertThat(((Number) bootstrap.get("user_count")).intValue()).isEqualTo(1);
     }
 
     @Test
@@ -90,7 +111,9 @@ class UserManagementDatabaseIntegrationTest {
                 """, tenantId, userId, ownerRoleId);
 
         Flyway.configure().dataSource(dataSource).defaultSchema(MIGRATION_TEST_SCHEMA)
-                .schemas(MIGRATION_TEST_SCHEMA).locations("classpath:db/migration").load().migrate();
+                .schemas(MIGRATION_TEST_SCHEMA).locations("classpath:db/migration")
+                .placeholders(Map.of("defaultSuperadminPasswordHash", TEST_PASSWORD_HASH))
+                .load().migrate();
 
         Integer assignedRoles = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)

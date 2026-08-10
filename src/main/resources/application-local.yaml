@@ -3,7 +3,7 @@
 # =========================
 spring:
   datasource:
-    url: ${DB_URL:jdbc:postgresql://postgresdb:5432/usermanagement}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/usermanagement}
     username: ${DB_USERNAME:admin}
     password: ${DB_PASSWORD:admin_macbook}
 

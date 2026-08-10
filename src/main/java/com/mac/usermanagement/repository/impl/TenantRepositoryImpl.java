@@ -6,6 +6,8 @@ import com.mac.sdk_util.exception.ResourceNotFoundException;
 import com.mac.usermanagement.utils.exception.IdentityConflictException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,7 +39,9 @@ public class TenantRepositoryImpl implements TenantRepository {
                     """, new MapSqlParameterSource()
                     .addValue("id", tenant.id()).addValue("tenantKey", tenant.tenantKey())
                     .addValue("name", tenant.name()).addValue("ttl", tenant.accessTokenTtlSeconds())
-                    .addValue("enabled", tenant.enabled()).addValue("createdAt", tenant.createdAt()));
+                    .addValue("enabled", tenant.enabled())
+                    .addValue("createdAt", tenant.createdAt().atOffset(ZoneOffset.UTC),
+                            Types.TIMESTAMP_WITH_TIMEZONE));
             return tenant;
         } catch (DuplicateKeyException exception) {
             throw new IdentityConflictException("Tenant key already exists", exception);
