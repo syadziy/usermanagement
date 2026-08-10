@@ -46,12 +46,17 @@ public class KafkaAuditEventPublisher implements AuditEventPublisher {
         String effectiveTraceId = traceId == null || traceId.isBlank() ? eventId.toString() : traceId;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Map<String, Object> effectiveMetadata = new LinkedHashMap<>(metadata);
-        String tenantId = tenantId(authentication);
+        String effectiveActorId = removeString(effectiveMetadata, "_auditActorId");
+        String effectiveActorName = removeString(effectiveMetadata, "_auditActorName");
+        String tenantId = removeString(effectiveMetadata, "_auditTenantId");
+        effectiveActorId = effectiveActorId == null ? actorId(authentication) : effectiveActorId;
+        effectiveActorName = effectiveActorName == null ? actorName(authentication) : effectiveActorName;
+        tenantId = tenantId == null ? tenantId(authentication) : tenantId;
         if (tenantId != null) {
             effectiveMetadata.put("tenantId", tenantId);
         }
         AuditEvent event = new AuditEvent(eventId, properties.sourceSystem(), clock.instant(),
-                actorId(authentication), actorName(authentication), action, resourceType, resourceId,
+                effectiveActorId, effectiveActorName, action, resourceType, resourceId,
                 outcome, effectiveTraceId, clientIp, Map.copyOf(effectiveMetadata));
         try {
             kafkaTemplate.send(properties.topic(), eventId.toString(), event)
@@ -69,6 +74,11 @@ public class KafkaAuditEventPublisher implements AuditEventPublisher {
         } catch (RuntimeException exception) {
             handleFailure(effectiveTraceId, eventId, exception);
         }
+    }
+
+    private static String removeString(Map<String, Object> metadata, String key) {
+        Object value = metadata.remove(key);
+        return value == null || value.toString().isBlank() ? null : value.toString();
     }
 
     private void handleFailure(String traceId, UUID eventId, Throwable exception) {

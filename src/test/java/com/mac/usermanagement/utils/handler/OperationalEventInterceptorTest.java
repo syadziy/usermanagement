@@ -63,6 +63,7 @@ class OperationalEventInterceptorTest {
     private static HandlerMethod handler() throws NoSuchMethodException {
         AuthController controller = mock(AuthController.class);
         return new HandlerMethod(controller, AuthController.class.getMethod("login",
-                com.mac.usermanagement.entities.dto.LoginRequest.class));
+                com.mac.usermanagement.entities.dto.LoginRequest.class,
+                jakarta.servlet.http.HttpServletRequest.class));
     }
 }

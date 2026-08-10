@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
 
 class ControllerAndHandlerTest {
@@ -31,7 +32,10 @@ class ControllerAndHandlerTest {
         LoginResponse loginResponse = new LoginResponse("Bearer", "token", NOW, TENANT_ID, USER_ID,
                 Set.of("OWNER"), Set.of("tenant:update"));
         when(auth.login(loginRequest)).thenReturn(loginResponse);
-        assertSame(loginResponse, new AuthController(auth).login(loginRequest).getBody().getData());
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        assertSame(loginResponse, new AuthController(auth).login(loginRequest, httpRequest).getBody().getData());
+        assertEquals(USER_ID.toString(), httpRequest.getAttribute(
+                com.mac.usermanagement.utils.AuditRequestAttributes.ACTOR_ID));
 
         TenantService tenants = mock(TenantService.class);
         RegisterTenantRequest register = new RegisterTenantRequest(
