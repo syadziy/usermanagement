@@ -28,6 +28,19 @@ spring:
       defaultSuperadminPasswordHash: ${DEFAULT_SUPERADMIN_PASSWORD_HASH:}
 
 # =========================
+# KAFKA
+# =========================
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 10
+      properties:
+        enable.idempotence: true
+
+# =========================
 # SERVER
 # =========================
 server:
@@ -47,6 +60,19 @@ usermanagement:
     audiences: ${JWT_AUDIENCES:api-gateway}
   registration:
     enabled: ${TENANT_REGISTRATION_ENABLED:true}
+  audit:
+    enabled: ${USERMANAGEMENT_AUDIT_ENABLED:true}
+    topic: ${USERMANAGEMENT_AUDIT_TOPIC:centralized-audit.requested}
+    source-system: ${USERMANAGEMENT_AUDIT_SOURCE_SYSTEM:USERMANAGEMENT-SERVICE}
+    fallback-actor-id: ${USERMANAGEMENT_AUDIT_FALLBACK_ACTOR_ID:usermanagement-service}
+  error-alert:
+    enabled: ${USERMANAGEMENT_ERROR_ALERT_ENABLED:true}
+    endpoint: ${CENTRALIZED_ALERT_URL:http://localhost:9003/api/v1/alert}
+    sender-email: ${USERMANAGEMENT_ERROR_ALERT_SENDER_EMAIL:usermanagement@example.com}
+    sender-name: ${USERMANAGEMENT_ERROR_ALERT_SENDER_NAME:User Management Service}
+    recipients: ${USERMANAGEMENT_ERROR_ALERT_RECIPIENTS:ops@example.com}
+    authorization-header: ${USERMANAGEMENT_ERROR_ALERT_AUTHORIZATION_HEADER:}
+    timeout: ${USERMANAGEMENT_ERROR_ALERT_TIMEOUT:PT10S}
 
 # =========================
 # SHARED SDK
