@@ -59,6 +59,11 @@ public class TenantRepositoryImpl implements TenantRepository {
     }
 
     @Override
+    public List<Tenant> findAll() {
+        return jdbcTemplate.query(SELECT + " ORDER BY created_at DESC, tenant_key", Map.of(), this::map);
+    }
+
+    @Override
     public void updateTokenTtl(UUID tenantId, long ttlSeconds) {
         int updated = jdbcTemplate.update("""
                 UPDATE tenant SET access_token_ttl_seconds = :ttl WHERE id = :id

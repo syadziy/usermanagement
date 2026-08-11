@@ -23,6 +23,7 @@ class ControllerAuthorizationTest {
         assertPermission(RoleController.class, "replacePermissions", "PERM_role:edit");
         assertPermission(RoleController.class, "createPermission", "PERM_permission:create");
         assertPermission(RoleController.class, "findPermissions", "PERM_permission:view");
+        assertPermission(TenantController.class, "findAll", "PERM_tenant:view");
         assertPermission(TenantController.class, "updateTokenPolicy", "PERM_tenant:update");
     }
 

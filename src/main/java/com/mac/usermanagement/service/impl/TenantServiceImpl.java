@@ -8,6 +8,7 @@ import com.mac.sdk_util.utils.StructuredLog;
 import com.mac.usermanagement.config.properties.RegistrationProperties;
 import com.mac.usermanagement.entities.constant.UserManagementLogFields;
 import com.mac.usermanagement.entities.dto.RegisterTenantRequest;
+import com.mac.usermanagement.entities.dto.TenantListResponse;
 import com.mac.usermanagement.entities.dto.TenantResponse;
 import com.mac.usermanagement.entities.model.Role;
 import com.mac.usermanagement.entities.model.Tenant;
@@ -19,6 +20,7 @@ import com.mac.usermanagement.service.TenantService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -76,6 +78,15 @@ public class TenantServiceImpl implements TenantService {
                 UserManagementLogFields.TENANT_ID, tenant.id(), UserManagementLogFields.USER_ID, owner.id()));
         return new TenantResponse(tenant.id(), tenant.tenantKey(), tenant.name(),
                 tenant.accessTokenTtlSeconds(), owner.id(), now);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TenantListResponse> findAll() {
+        return tenantRepository.findAll().stream()
+                .map(tenant -> new TenantListResponse(tenant.id(), tenant.tenantKey(), tenant.name(),
+                        tenant.accessTokenTtlSeconds(), tenant.enabled(), tenant.createdAt()))
+                .toList();
     }
 
     @Override

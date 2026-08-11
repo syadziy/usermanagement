@@ -1,6 +1,7 @@
 package com.mac.usermanagement.repository;
 
 import com.mac.usermanagement.entities.model.Tenant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,6 +12,8 @@ public interface TenantRepository {
     Optional<Tenant> findById(UUID tenantId);
 
     Optional<Tenant> findByKey(String tenantKey);
+
+    List<Tenant> findAll();
 
     void updateTokenTtl(UUID tenantId, long ttlSeconds);
 }

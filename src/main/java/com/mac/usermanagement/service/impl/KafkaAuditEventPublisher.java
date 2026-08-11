@@ -91,10 +91,22 @@ public class KafkaAuditEventPublisher implements AuditEventPublisher {
     }
 
     private String actorId(Authentication authentication) {
+        if (authenticated(authentication) && authentication.getPrincipal() instanceof Jwt jwt) {
+            String subject = jwt.getSubject();
+            if (subject != null && !subject.isBlank()) {
+                return subject;
+            }
+        }
         return authenticated(authentication) ? authentication.getName() : properties.fallbackActorId();
     }
 
     private static String actorName(Authentication authentication) {
+        if (authenticated(authentication) && authentication.getPrincipal() instanceof Jwt jwt) {
+            String username = jwt.getClaimAsString("username");
+            if (username != null && !username.isBlank()) {
+                return username;
+            }
+        }
         return authenticated(authentication) ? authentication.getName() : null;
     }
 
