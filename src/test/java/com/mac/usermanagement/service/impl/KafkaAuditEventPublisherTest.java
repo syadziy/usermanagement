@@ -26,6 +26,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 class KafkaAuditEventPublisherTest {
 
@@ -80,6 +82,30 @@ class KafkaAuditEventPublisherTest {
                 Clock.fixed(NOW, ZoneOffset.UTC))
                 .publish("CREATE", "USER", "3", "SUCCESS", "trace", null, Map.of());
         verify(template, times(2)).send(anyString(), anyString(), any());
+    }
+
+    @Test
+    void usesJwtSubjectAsActorIdAndUsernameAsActorName() {
+        KafkaTemplate<String, Object> template = mock(KafkaTemplate.class);
+        ErrorAlertNotifier notifier = mock(ErrorAlertNotifier.class);
+        when(template.send(anyString(), anyString(), any()))
+                .thenReturn(CompletableFuture.completedFuture(mock(SendResult.class)));
+        Jwt jwt = Jwt.withTokenValue("redacted").header("alg", "none")
+                .subject("user-id").claim("username", "tenant.owner")
+                .claim("tenant_id", "tenant-id").build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new JwtAuthenticationToken(jwt, java.util.List.of(), "tenant.owner"));
+
+        new KafkaAuditEventPublisher(template, properties(true), notifier,
+                Clock.fixed(NOW, ZoneOffset.UTC))
+                .publish("USER_CREATE", "USER", "resource-id", "SUCCESS", "trace", null, Map.of());
+
+        ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(template).send(eq("centralized-audit.requested"), anyString(), eventCaptor.capture());
+        AuditEvent event = (AuditEvent) eventCaptor.getValue();
+        assertThat(event.actorId()).isEqualTo("user-id");
+        assertThat(event.actorName()).isEqualTo("tenant.owner");
+        assertThat(event.metadata()).containsEntry("tenantId", "tenant-id");
     }
 
     private static AuditPublisherProperties properties(boolean enabled) {
