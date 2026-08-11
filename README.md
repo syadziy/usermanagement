@@ -22,7 +22,8 @@ secara default melalui `APP_TIMEZONE=UTC`.
 - Role dapat memiliki banyak permission dan user dapat memiliki banyak role.
 - Spring method security pada controller melalui authority `PERM_<resource>:<action>`.
 - PostgreSQL, Flyway, Spring JDBC, Actuator, Prometheus, ECS logging, trace ID, dan OpenAPI.
-- Audit terpusat untuk setiap endpoint API melalui Kafka topic `centralized-audit.requested`.
+- Audit autentikasi login melalui Kafka topic `centralized-audit.requested`; audit request API
+  lainnya dimiliki oleh `api_gateway` agar tidak tercatat ganda.
 - Centralized alert untuk exception dan HTTP 5xx tanpa mengirim password, token, atau request body.
 - Response envelope dan HTTP exception handling dari `sdk-util`.
 
@@ -131,13 +132,13 @@ docker run --rm --env-file .env -p 9005:9005 usermanagement:1.0.0
 Isi `.env` dari `.env.example`, ganti seluruh secret, dan gunakan hostname service Docker untuk
 PostgreSQL atau dependency container lain. Image berjalan sebagai user non-root dan memakai UTC.
 
-Audit membutuhkan Kafka yang dapat dijangkau melalui `KAFKA_BOOTSTRAP_SERVERS`; service
+Audit login membutuhkan Kafka yang dapat dijangkau melalui `KAFKA_BOOTSTRAP_SERVERS`; service
 `audit_log` harus mengonsumsi topic yang sama dengan `USERMANAGEMENT_AUDIT_TOPIC`. Error operasional
 dikirim ke `CENTRALIZED_ALERT_URL`. Atur recipient melalui
 `USERMANAGEMENT_ERROR_ALERT_RECIPIENTS` dan authorization header melalui secret
-`USERMANAGEMENT_ERROR_ALERT_AUTHORIZATION_HEADER`. Response 4xx tetap diaudit sebagai `FAILURE`,
+`USERMANAGEMENT_ERROR_ALERT_AUTHORIZATION_HEADER`. Kegagalan login tetap diaudit sebagai `FAILURE`,
 tetapi hanya exception dan response 5xx yang menghasilkan centralized alert untuk menghindari
-alert noise dari kesalahan input atau autentikasi.
+alert noise dari kesalahan autentikasi.
 
 ## REST API
 

@@ -18,9 +18,6 @@ import org.springframework.web.servlet.HandlerInterceptor;
 @Component
 public class OperationalEventInterceptor implements HandlerInterceptor {
 
-    static final String AUDIT_RECORDED_ATTRIBUTE =
-            OperationalEventInterceptor.class.getName() + ".auditRecorded";
-
     private final AuditEventPublisher auditPublisher;
     private final ErrorAlertNotifier alertNotifier;
 
@@ -35,7 +32,6 @@ public class OperationalEventInterceptor implements HandlerInterceptor {
         if (!(handler instanceof HandlerMethod handlerMethod)) {
             return;
         }
-        request.setAttribute(AUDIT_RECORDED_ATTRIBUTE, Boolean.TRUE);
         String traceId = resolveTraceId(request);
         String resourceType = handlerMethod.getBeanType().getSimpleName().replace("Controller", "").toUpperCase();
         String action = resourceType + "_" + handlerMethod.getMethod().getName().toUpperCase();
