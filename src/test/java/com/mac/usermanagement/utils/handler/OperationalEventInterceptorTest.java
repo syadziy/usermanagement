@@ -64,6 +64,7 @@ class OperationalEventInterceptorTest {
         AuthController controller = mock(AuthController.class);
         return new HandlerMethod(controller, AuthController.class.getMethod("login",
                 com.mac.usermanagement.entities.dto.LoginRequest.class,
-                jakarta.servlet.http.HttpServletRequest.class));
+                jakarta.servlet.http.HttpServletRequest.class,
+                jakarta.servlet.http.HttpServletResponse.class));
     }
 }

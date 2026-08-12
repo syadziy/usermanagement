@@ -2,6 +2,8 @@ package com.mac.usermanagement.config;
 
 import com.mac.sdk_util.helper.ResponseHelper;
 import com.mac.usermanagement.config.properties.JwtProperties;
+import com.mac.usermanagement.config.properties.AuthCookieProperties;
+import com.mac.usermanagement.security.CookieBearerTokenResolver;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
@@ -64,7 +66,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper)
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper,
+            AuthCookieProperties cookieProperties)
             throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -72,13 +75,15 @@ public class SecurityConfig {
                 .requestCache(cache -> cache.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/internal/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/tenants").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/logout",
+                                "/api/v1/tenants").permitAll()
                         .requestMatchers("/.well-known/openid-configuration",
                                 "/.well-known/oauth-authorization-server", "/oauth2/jwks").permitAll()
                         .requestMatchers("/actuator/health/**", "/actuator/info/**", "/v3/api-docs/**",
                                 "/swagger-ui.html", "/swagger-ui/**", "/error").permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
+                        .bearerTokenResolver(new CookieBearerTokenResolver(cookieProperties))
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                         .authenticationEntryPoint((request, response, exception) -> {
                             response.setStatus(401);

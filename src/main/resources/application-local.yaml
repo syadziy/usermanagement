@@ -11,6 +11,8 @@ spring:
 # LOCAL JWT
 # =========================
 usermanagement:
+  auth-cookie:
+    secure: ${AUTH_COOKIE_SECURE:false}
   jwt:
     generate-ephemeral-key: ${JWT_GENERATE_EPHEMERAL_KEY:true}
 

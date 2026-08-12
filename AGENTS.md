@@ -80,6 +80,12 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 
 ## Authentication and Authorization
 
+- Browser authentication uses the `ACCESS_TOKEN` cookie issued by login. The cookie must remain
+  `HttpOnly`, use configured `Secure`, `SameSite=Strict`, path `/`, and expire with the JWT.
+  Never return the JWT in browser-facing login/session response data or expose it to JavaScript.
+- Preserve `GET /api/v1/auth/session` for restoring session metadata after refresh and
+  `POST /api/v1/auth/logout` for expiring the cookie. Header Bearer authentication remains supported
+  for Postman and service clients.
 - Passwords require at least 12 characters and are encoded with BCrypt strength 12.
 - JWT RSA private keys belong in environment/secret management and must be at least 2048 bits.
 - Ephemeral key generation is local-only; shared environments require stable keys and coordinated

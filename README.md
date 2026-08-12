@@ -172,7 +172,15 @@ Contoh request dan response lengkap tersedia di `src/main/resources/json/index.j
 }
 ```
 
-Gunakan access token pada endpoint lain:
+Browser menerima JWT melalui cookie `ACCESS_TOKEN` dengan atribut `HttpOnly`, `SameSite=Strict`,
+dan `Secure` di luar profile lokal. JavaScript tidak menerima atau menyimpan JWT. Gunakan endpoint
+berikut untuk memulihkan dan mengakhiri session:
+
+- `GET /api/v1/auth/session`
+- `POST /api/v1/auth/logout`
+
+Postman dan service client tetap dapat menggunakan Bearer token jika token diperoleh melalui alur
+non-browser yang tepercaya:
 
 ```http
 Authorization: Bearer <accessToken>

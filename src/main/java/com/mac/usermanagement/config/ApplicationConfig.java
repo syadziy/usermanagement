@@ -4,6 +4,7 @@ import com.mac.usermanagement.config.properties.JwtProperties;
 import com.mac.usermanagement.config.properties.RegistrationProperties;
 import com.mac.usermanagement.config.properties.AuditPublisherProperties;
 import com.mac.usermanagement.config.properties.ErrorAlertProperties;
+import com.mac.usermanagement.config.properties.AuthCookieProperties;
 import java.net.http.HttpClient;
 import java.time.Clock;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -14,7 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({JwtProperties.class, RegistrationProperties.class,
-        AuditPublisherProperties.class, ErrorAlertProperties.class})
+        AuditPublisherProperties.class, ErrorAlertProperties.class, AuthCookieProperties.class})
 public class ApplicationConfig {
 
     @Bean

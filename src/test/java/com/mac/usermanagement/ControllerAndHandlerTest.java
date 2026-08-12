@@ -16,6 +16,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.access.AccessDeniedException;
 
 class ControllerAndHandlerTest {
@@ -32,10 +33,19 @@ class ControllerAndHandlerTest {
         LoginResponse loginResponse = new LoginResponse("Bearer", "token", NOW, TENANT_ID, USER_ID,
                 Set.of("OWNER"), Set.of("tenant:update"));
         when(auth.login(loginRequest)).thenReturn(loginResponse);
+        AuthCookieService cookies = mock(AuthCookieService.class);
         MockHttpServletRequest httpRequest = new MockHttpServletRequest();
-        assertSame(loginResponse, new AuthController(auth).login(loginRequest, httpRequest).getBody().getData());
+        MockHttpServletResponse httpResponse = new MockHttpServletResponse();
+        AuthController authController = new AuthController(auth, cookies);
+        AuthSessionResponse session = authController.login(loginRequest, httpRequest, httpResponse)
+                .getBody().getData();
+        assertEquals(TENANT_ID, session.tenantId());
+        assertEquals("owner", session.username());
+        verify(cookies).issue(httpResponse, "token", NOW);
         assertEquals(USER_ID.toString(), httpRequest.getAttribute(
                 com.mac.usermanagement.utils.AuditRequestAttributes.ACTOR_ID));
+        assertTrue(authController.logout(httpResponse).getBody().getData().get("loggedOut"));
+        verify(cookies).clear(httpResponse);
 
         TenantService tenants = mock(TenantService.class);
         RegisterTenantRequest register = new RegisterTenantRequest(
