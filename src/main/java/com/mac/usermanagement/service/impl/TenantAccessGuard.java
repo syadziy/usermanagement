@@ -21,6 +21,9 @@ public class TenantAccessGuard {
 
     public void require(UUID requestedTenantId) {
         Jwt jwt = authenticatedJwt();
+        if (PLATFORM_SUPERADMIN_TENANT_KEY.equals(jwt.getClaimAsString("tenant_key"))) {
+            return;
+        }
         UUID tokenTenantId;
         try {
             tokenTenantId = UUID.fromString(jwt.getClaimAsString("tenant_id"));

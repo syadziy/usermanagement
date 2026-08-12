@@ -84,8 +84,9 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 
 - `tenant_key=superadmin` is the only platform-level permission bypass. It must be represented by
   the signed `tenant_key` JWT claim and the session response; never infer it from username or from
-  the tenant-scoped `SUPERADMIN` role. Keep tenant-ID isolation active unless a requirement
-  explicitly introduces audited cross-tenant access.
+  the tenant-scoped `SUPERADMIN` role. `TenantAccessGuard.require` permits this platform tenant to
+  manage identity data across a selected tenant; all other tenants remain restricted to their own
+  signed `tenant_id`. Cross-tenant requests must continue through API Gateway audit logging.
 - New permission migrations must also insert the permission into the `superadmin` tenant and assign
   it to its system `SUPERADMIN` role. Keep `AuthorizationCatalog.DEFAULT_PERMISSIONS` synchronized.
 - Browser authentication uses the `ACCESS_TOKEN` cookie issued by login. The cookie must remain

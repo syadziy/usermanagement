@@ -260,6 +260,9 @@ class ServiceCoverageTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new TestingAuthenticationToken(jwt(UUID.randomUUID().toString()), null));
         assertThrows(AccessDeniedException.class, () -> guard.require(TENANT_ID));
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken(jwt(UUID.randomUUID().toString(), "superadmin"), null));
+        assertDoesNotThrow(() -> guard.require(TENANT_ID));
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(jwt("bad"), null));
         assertThrows(AccessDeniedException.class, () -> guard.require(TENANT_ID));
 
