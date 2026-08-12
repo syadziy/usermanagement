@@ -9,6 +9,7 @@ public record LoginResponse(
         String accessToken,
         Instant expiresAt,
         UUID tenantId,
+        String tenantKey,
         UUID userId,
         Set<String> roles,
         Set<String> permissions) {}

@@ -45,9 +45,15 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<RoleResponse> findRoles(UUID tenantId) {
+    public List<RoleResponse> findRoles(UUID tenantId, int limit, int offset) {
         tenantAccessGuard.require(tenantId);
-        return roleRepository.findAll(tenantId).stream().map(IdentityMapper::toResponse).toList();
+        return roleRepository.findAll(tenantId, limit, offset).stream().map(IdentityMapper::toResponse).toList();
+    }
+
+    @Override
+    public long countRoles(UUID tenantId) {
+        tenantAccessGuard.require(tenantId);
+        return roleRepository.countRoles(tenantId);
     }
 
     @Override
@@ -71,9 +77,16 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public List<PermissionResponse> findPermissions(UUID tenantId) {
+    public List<PermissionResponse> findPermissions(UUID tenantId, int limit, int offset) {
         tenantAccessGuard.require(tenantId);
-        return roleRepository.findPermissions(tenantId).stream().map(IdentityMapper::toResponse).toList();
+        return roleRepository.findPermissions(tenantId, limit, offset).stream()
+                .map(IdentityMapper::toResponse).toList();
+    }
+
+    @Override
+    public long countPermissions(UUID tenantId) {
+        tenantAccessGuard.require(tenantId);
+        return roleRepository.countPermissions(tenantId);
     }
 
     private static String normalize(String value) {

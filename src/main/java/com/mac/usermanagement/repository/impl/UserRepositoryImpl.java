@@ -69,6 +69,23 @@ public class UserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public List<UserAccount> findAll(UUID tenantId, int limit, int offset) {
+        return jdbcTemplate.query(SELECT + """
+                 WHERE tenant_id = :tenantId
+                 ORDER BY username, id
+                 LIMIT :limit OFFSET :offset
+                """, Map.of("tenantId", tenantId, "limit", limit, "offset", offset), this::map);
+    }
+
+    @Override
+    public long count(UUID tenantId) {
+        Long total = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM user_account WHERE tenant_id = :tenantId",
+                Map.of("tenantId", tenantId), Long.class);
+        return total == null ? 0 : total;
+    }
+
+    @Override
     public UserAccess findAccess(UUID tenantId, UUID userId) {
         return findAccess(tenantId, Set.of(userId))
                 .getOrDefault(userId, new UserAccess(Set.of(), Set.of()));

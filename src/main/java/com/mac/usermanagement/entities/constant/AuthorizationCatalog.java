@@ -4,6 +4,7 @@ import java.util.List;
 
 public final class AuthorizationCatalog {
 
+    public static final String PLATFORM_SUPERADMIN_TENANT_KEY = "superadmin";
     public static final String SUPERADMIN_ROLE = "SUPERADMIN";
     public static final List<PermissionDefinition> DEFAULT_PERMISSIONS = List.of(
             permission("tenant", "view"), permission("tenant", "update"),
@@ -17,6 +18,7 @@ public final class AuthorizationCatalog {
             permission("alert", "write"), permission("alert", "read-recipients"),
             permission("alert", "manage-recipients"), permission("alert", "read-notifications"),
             permission("audit", "read"),
+            permission("gateway-log", "read"),
             permission("scheduler", "read"), permission("scheduler", "manage"));
 
     private AuthorizationCatalog() {}

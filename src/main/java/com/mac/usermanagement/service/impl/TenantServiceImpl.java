@@ -82,11 +82,18 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TenantListResponse> findAll() {
-        return tenantRepository.findAll().stream()
+    public List<TenantListResponse> findAll(int limit, int offset) {
+        tenantAccessGuard.requirePlatformTenant();
+        return tenantRepository.findAll(limit, offset).stream()
                 .map(tenant -> new TenantListResponse(tenant.id(), tenant.tenantKey(), tenant.name(),
                         tenant.accessTokenTtlSeconds(), tenant.enabled(), tenant.createdAt()))
                 .toList();
+    }
+
+    @Override
+    public long count() {
+        tenantAccessGuard.requirePlatformTenant();
+        return tenantRepository.count();
     }
 
     @Override

@@ -116,6 +116,37 @@ public class RoleRepositoryImpl implements RoleRepository {
         return findRoles(tenantId, null);
     }
 
+    @Override
+    public List<Role> findAll(UUID tenantId, int limit, int offset) {
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("tenantId", tenantId).addValue("limit", limit).addValue("offset", offset);
+        Map<UUID, MutableRole> roles = new LinkedHashMap<>();
+        jdbcTemplate.query("""
+                WITH selected_roles AS (
+                    SELECT * FROM role
+                    WHERE tenant_id = :tenantId
+                    ORDER BY name, id
+                    LIMIT :limit OFFSET :offset
+                )
+                SELECT r.id, r.tenant_id, r.name, r.description, r.system_role, r.created_at,
+                       p.resource, p.action
+                FROM selected_roles r
+                LEFT JOIN role_permission rp ON rp.role_id = r.id AND rp.tenant_id = r.tenant_id
+                LEFT JOIN permission p ON p.id = rp.permission_id AND p.tenant_id = rp.tenant_id
+                ORDER BY r.name, r.id, p.resource, p.action
+                """, parameters, (org.springframework.jdbc.core.RowCallbackHandler)
+                        resultSet -> collectRole(roles, resultSet));
+        return roles.values().stream().map(MutableRole::toRole).toList();
+    }
+
+    @Override
+    public long countRoles(UUID tenantId) {
+        Long total = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM role WHERE tenant_id = :tenantId",
+                Map.of("tenantId", tenantId), Long.class);
+        return total == null ? 0 : total;
+    }
+
     private List<Role> findRoles(UUID tenantId, UUID roleId) {
         MapSqlParameterSource parameters = new MapSqlParameterSource().addValue("tenantId", tenantId);
         String rolePredicate = "";
@@ -132,18 +163,7 @@ public class RoleRepositoryImpl implements RoleRepository {
                 LEFT JOIN permission p ON p.id = rp.permission_id AND p.tenant_id = rp.tenant_id
                 WHERE r.tenant_id = :tenantId
                 """ + rolePredicate + " ORDER BY r.name, p.resource, p.action", parameters, resultSet -> {
-            UUID id = resultSet.getObject("id", UUID.class);
-            UUID rowTenantId = resultSet.getObject("tenant_id", UUID.class);
-            String name = resultSet.getString("name");
-            String description = resultSet.getString("description");
-            boolean systemRole = resultSet.getBoolean("system_role");
-            Instant createdAt = resultSet.getTimestamp("created_at").toInstant();
-            MutableRole role = roles.computeIfAbsent(id, ignored -> new MutableRole(
-                    id, rowTenantId, name, description, systemRole, createdAt));
-            String resource = resultSet.getString("resource");
-            if (resource != null) {
-                role.permissions.add(resource + ":" + resultSet.getString("action"));
-            }
+            collectRole(roles, resultSet);
         });
         return roles.values().stream().map(MutableRole::toRole).toList();
     }
@@ -160,6 +180,31 @@ public class RoleRepositoryImpl implements RoleRepository {
     }
 
     @Override
+    public List<Permission> findPermissions(UUID tenantId, int limit, int offset) {
+        return jdbcTemplate.query("""
+                SELECT id, tenant_id, resource, action, description, created_at
+                FROM permission
+                WHERE tenant_id = :tenantId
+                ORDER BY resource, action, id
+                LIMIT :limit OFFSET :offset
+                """, Map.of("tenantId", tenantId, "limit", limit, "offset", offset),
+                (resultSet, rowNumber) -> new Permission(
+                        resultSet.getObject("id", UUID.class),
+                        resultSet.getObject("tenant_id", UUID.class),
+                        resultSet.getString("resource"), resultSet.getString("action"),
+                        resultSet.getString("description"),
+                        resultSet.getTimestamp("created_at").toInstant()));
+    }
+
+    @Override
+    public long countPermissions(UUID tenantId) {
+        Long total = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM permission WHERE tenant_id = :tenantId",
+                Map.of("tenantId", tenantId), Long.class);
+        return total == null ? 0 : total;
+    }
+
+    @Override
     public boolean allExist(UUID tenantId, Set<UUID> roleIds) {
         if (roleIds.isEmpty()) {
             return true;
@@ -168,6 +213,22 @@ public class RoleRepositoryImpl implements RoleRepository {
                 SELECT COUNT(*) FROM role WHERE tenant_id = :tenantId AND id IN (:roleIds)
                 """, Map.of("tenantId", tenantId, "roleIds", roleIds), Long.class);
         return count != null && count == roleIds.size();
+    }
+
+    private static void collectRole(Map<UUID, MutableRole> roles, java.sql.ResultSet resultSet)
+            throws java.sql.SQLException {
+        UUID id = resultSet.getObject("id", UUID.class);
+        UUID tenantId = resultSet.getObject("tenant_id", UUID.class);
+        String name = resultSet.getString("name");
+        String description = resultSet.getString("description");
+        boolean systemRole = resultSet.getBoolean("system_role");
+        Instant createdAt = resultSet.getTimestamp("created_at").toInstant();
+        MutableRole role = roles.computeIfAbsent(id, ignored -> new MutableRole(
+                id, tenantId, name, description, systemRole, createdAt));
+        String resource = resultSet.getString("resource");
+        if (resource != null) {
+            role.permissions.add(resource + ":" + resultSet.getString("action"));
+        }
     }
 
     private static final class MutableRole {

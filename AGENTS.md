@@ -76,10 +76,18 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 - Use `NamedParameterJdbcTemplate`; never concatenate request-derived SQL.
 - Every schema change requires a new Flyway migration. Never edit a migration already deployed.
 - Preserve composite foreign keys that prevent cross-tenant assignments.
-- Keep list operations bounded and introduce real pagination before raising limits.
+- Every list endpoint must accept validated `limit` and `offset`, apply stable SQL ordering plus
+  `LIMIT/OFFSET`, and return `paging.limit`, `paging.offset`, and `paging.total_record`. The total
+  must come from a matching unpaginated `COUNT`, never from the current page size.
 
 ## Authentication and Authorization
 
+- `tenant_key=superadmin` is the only platform-level permission bypass. It must be represented by
+  the signed `tenant_key` JWT claim and the session response; never infer it from username or from
+  the tenant-scoped `SUPERADMIN` role. Keep tenant-ID isolation active unless a requirement
+  explicitly introduces audited cross-tenant access.
+- New permission migrations must also insert the permission into the `superadmin` tenant and assign
+  it to its system `SUPERADMIN` role. Keep `AuthorizationCatalog.DEFAULT_PERMISSIONS` synchronized.
 - Browser authentication uses the `ACCESS_TOKEN` cookie issued by login. The cookie must remain
   `HttpOnly`, use configured `Secure`, `SameSite=Strict`, path `/`, and expire with the JWT.
   Never return the JWT in browser-facing login/session response data or expose it to JavaScript.
@@ -93,6 +101,10 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 - Do not log passwords, hashes, JWTs, Authorization headers, or personal data unnecessarily.
 - Tenant-specific TTL must remain between 60 and 86,400 seconds.
 - Permission names are lowercase `resource:action`; role names are uppercase snake case.
+- Setiap menu atau action baru wajib memiliki permission granular yang sama pada katalog
+  `AuthorizationCatalog`, Flyway migration untuk tenant lama, JWT claim, API Gateway/backend
+  enforcement, guard frontend, serta allow/deny tests. Jangan menggunakan permission fitur lain
+  sebagai shortcut. Gateway Logs memakai `gateway-log:read`, terpisah dari `audit:read`.
 - The primary user created during tenant registration owns the `SUPERADMIN` system role with all
   tenant permissions. Existing `TENANT_OWNER` users are promoted by Flyway V5; never seed a
   plaintext/default superadmin password in a migration.

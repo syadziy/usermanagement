@@ -10,7 +10,9 @@ public interface TenantService {
 
     TenantResponse register(RegisterTenantRequest request);
 
-    List<TenantListResponse> findAll();
+    List<TenantListResponse> findAll(int limit, int offset);
+
+    long count();
 
     void updateTokenPolicy(UUID tenantId, long ttlSeconds);
 }

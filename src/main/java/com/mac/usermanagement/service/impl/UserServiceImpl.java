@@ -49,15 +49,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<UserResponse> findAll(UUID tenantId) {
+    public List<UserResponse> findAll(UUID tenantId, int limit, int offset) {
         tenantAccessGuard.require(tenantId);
-        List<UserAccount> users = userRepository.findAll(tenantId);
+        List<UserAccount> users = userRepository.findAll(tenantId, limit, offset);
         Set<UUID> userIds = users.stream().map(UserAccount::id).collect(java.util.stream.Collectors.toSet());
         Map<UUID, UserAccess> accessByUser = userRepository.findAccess(tenantId, userIds);
         return users.stream().map(user -> {
             UserAccess access = accessByUser.getOrDefault(user.id(), new UserAccess(Set.of(), Set.of()));
             return IdentityMapper.toResponse(user, access.roles());
         }).toList();
+    }
+
+    @Override
+    public long count(UUID tenantId) {
+        tenantAccessGuard.require(tenantId);
+        return userRepository.count(tenantId);
     }
 
     @Override

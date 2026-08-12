@@ -1,5 +1,8 @@
 package com.mac.usermanagement.service.impl;
 
+import static com.mac.usermanagement.entities.constant.AuthorizationCatalog.DEFAULT_PERMISSIONS;
+import static com.mac.usermanagement.entities.constant.AuthorizationCatalog.PLATFORM_SUPERADMIN_TENANT_KEY;
+
 import com.mac.sdk_util.entities.constant.LogFields;
 import com.mac.sdk_util.utils.StructuredLog;
 import com.mac.usermanagement.config.properties.JwtProperties;
@@ -16,6 +19,8 @@ import com.mac.usermanagement.utils.exception.InvalidCredentialsException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
             throw new InvalidCredentialsException();
         }
-        UserAccess access = userRepository.findAccess(tenant.id(), user.id());
+        UserAccess access = effectiveAccess(tenant, userRepository.findAccess(tenant.id(), user.id()));
         Instant issuedAt = clock.instant();
         Instant expiresAt = issuedAt.plusSeconds(tenant.accessTokenTtlSeconds());
         JwtClaimsSet claims = JwtClaimsSet.builder().issuer(jwtProperties.normalizedIssuer()).issuedAt(issuedAt)
@@ -78,7 +83,18 @@ public class AuthServiceImpl implements AuthService {
                 LogFields.EVENT_ACTION, "login", LogFields.EVENT_OUTCOME, LogFields.OUTCOME_SUCCESS,
                 LogFields.EVENT_DATASET, "usermanagement.authentication",
                 UserManagementLogFields.TENANT_ID, tenant.id(), UserManagementLogFields.USER_ID, user.id()));
-        return new LoginResponse("Bearer", token, expiresAt, tenant.id(), user.id(),
+        return new LoginResponse("Bearer", token, expiresAt, tenant.id(), tenant.tenantKey(), user.id(),
                 access.roles(), access.permissions());
+    }
+
+    private static UserAccess effectiveAccess(Tenant tenant, UserAccess access) {
+        if (!PLATFORM_SUPERADMIN_TENANT_KEY.equals(tenant.tenantKey())) {
+            return access;
+        }
+        Set<String> permissions = new TreeSet<>(access.permissions());
+        DEFAULT_PERMISSIONS.stream()
+                .map(permission -> permission.resource() + ":" + permission.action())
+                .forEach(permissions::add);
+        return new UserAccess(access.roles(), Set.copyOf(permissions));
     }
 }

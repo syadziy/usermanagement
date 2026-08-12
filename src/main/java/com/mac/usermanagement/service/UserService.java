@@ -10,7 +10,9 @@ public interface UserService {
 
     UserResponse create(UUID tenantId, CreateUserRequest request);
 
-    List<UserResponse> findAll(UUID tenantId);
+    List<UserResponse> findAll(UUID tenantId, int limit, int offset);
+
+    long count(UUID tenantId);
 
     UserResponse assignRoles(UUID tenantId, UUID userId, Set<UUID> roleIds);
 }

@@ -19,6 +19,10 @@ public interface UserRepository {
 
     List<UserAccount> findAll(UUID tenantId);
 
+    List<UserAccount> findAll(UUID tenantId, int limit, int offset);
+
+    long count(UUID tenantId);
+
     UserAccess findAccess(UUID tenantId, UUID userId);
 
     Map<UUID, UserAccess> findAccess(UUID tenantId, Set<UUID> userIds);

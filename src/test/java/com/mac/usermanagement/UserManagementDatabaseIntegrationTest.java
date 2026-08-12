@@ -50,7 +50,7 @@ class UserManagementDatabaseIntegrationTest {
                 """, Integer.class);
         assertThat(count).isEqualTo(6);
         Boolean bootstrapMigrationApplied = jdbcTemplate.queryForObject("""
-                SELECT success FROM flyway_schema_history WHERE version = '6'
+                SELECT success FROM flyway_schema_history WHERE version = '7'
                 """, Boolean.class);
         assertThat(bootstrapMigrationApplied).isTrue();
 
@@ -67,9 +67,25 @@ class UserManagementDatabaseIntegrationTest {
                 GROUP BY tenant.id, tenant.tenant_key
                 """);
         assertThat(bootstrap.get("tenant_key")).isEqualTo("syadziy-company");
-        assertThat(((Number) bootstrap.get("permission_count")).intValue()).isEqualTo(22);
+        assertThat(((Number) bootstrap.get("permission_count")).intValue()).isEqualTo(23);
         assertThat(((Number) bootstrap.get("role_count")).intValue()).isEqualTo(1);
         assertThat(((Number) bootstrap.get("user_count")).intValue()).isEqualTo(1);
+
+        Map<String, Object> platformSuperadmin = jdbcTemplate.queryForMap("""
+                SELECT tenant.tenant_key, user_account.username, role.name AS role_name,
+                       COUNT(role_permission.permission_id) AS permission_count
+                FROM tenant
+                JOIN user_account ON user_account.tenant_id = tenant.id
+                JOIN user_role ON user_role.user_id = user_account.id
+                JOIN role ON role.id = user_role.role_id
+                LEFT JOIN role_permission ON role_permission.role_id = role.id
+                WHERE tenant.tenant_key = 'superadmin' AND user_account.username = 'superadmin'
+                GROUP BY tenant.tenant_key, user_account.username, role.name
+                """);
+        assertThat(platformSuperadmin.get("tenant_key")).isEqualTo("superadmin");
+        assertThat(platformSuperadmin.get("username")).isEqualTo("superadmin");
+        assertThat(platformSuperadmin.get("role_name")).isEqualTo("SUPERADMIN");
+        assertThat(((Number) platformSuperadmin.get("permission_count")).intValue()).isEqualTo(23);
     }
 
     @Test

@@ -93,11 +93,18 @@ export DEFAULT_SUPERADMIN_PASSWORD_HASH="$(htpasswd -bnBC 12 syadziy 'replace-wi
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-Pada database kosong, migration V6 membuat tenant `syadziy-company`, 22 permission, role
-`SUPERADMIN`, dan user `syadziy.owner` (`owner@syadziy.company`). Migration mewajibkan
-`DEFAULT_SUPERADMIN_PASSWORD_HASH` berupa BCrypt strength 12 dan tidak menyimpan plaintext
-password. Pada database existing, migration bersifat idempotent dan tidak mengganti password user
-yang sudah ada.
+Pada database kosong, migration membuat tenant awal `syadziy-company` dan tenant platform
+`superadmin`. Migration V8 membuat akun platform berikut:
+
+- tenant key: `superadmin`
+- username: `superadmin`
+- email: `superadmin@platform.local`
+- password: password yang digunakan untuk menghasilkan `DEFAULT_SUPERADMIN_PASSWORD_HASH`
+
+`DEFAULT_SUPERADMIN_PASSWORD_HASH` wajib berupa BCrypt strength 12; tidak ada password plaintext
+di migration. Tenant platform menerima seluruh permission katalog dan hanya tenant tersebut yang
+dapat membaca daftar tenant. Migration bersifat idempotent dan tidak mengganti password akun yang
+sudah ada.
 
 Port default adalah `9005`. Profile `local` membuat RSA key sementara agar mudah dijalankan. Token
 lokal otomatis tidak valid setelah service restart. Shared environment dan production wajib

@@ -12,11 +12,15 @@ public interface RoleService {
 
     RoleResponse createRole(UUID tenantId, CreateRoleRequest request);
 
-    List<RoleResponse> findRoles(UUID tenantId);
+    List<RoleResponse> findRoles(UUID tenantId, int limit, int offset);
+
+    long countRoles(UUID tenantId);
 
     RoleResponse replacePermissions(UUID tenantId, UUID roleId, Set<String> permissions);
 
     PermissionResponse createPermission(UUID tenantId, CreatePermissionRequest request);
 
-    List<PermissionResponse> findPermissions(UUID tenantId);
+    List<PermissionResponse> findPermissions(UUID tenantId, int limit, int offset);
+
+    long countPermissions(UUID tenantId);
 }

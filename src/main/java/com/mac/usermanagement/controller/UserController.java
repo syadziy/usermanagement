@@ -1,13 +1,17 @@
 package com.mac.usermanagement.controller;
 
 import com.mac.sdk_util.entities.dto.ResponseDTO;
+import com.mac.sdk_util.entities.dto.PagingDTO;
 import com.mac.sdk_util.entities.constant.Role;
 import com.mac.sdk_util.helper.ResponseHelper;
+import com.mac.sdk_util.helper.ResponsePagingHelper;
 import com.mac.usermanagement.entities.dto.AssignRolesRequest;
 import com.mac.usermanagement.entities.dto.CreateUserRequest;
 import com.mac.usermanagement.entities.dto.UserResponse;
 import com.mac.usermanagement.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -43,8 +48,12 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize(Role.USER_VIEW)
-    public ResponseEntity<ResponseDTO<List<UserResponse>>> findAll(@PathVariable UUID tenantId) {
-        return ResponseHelper.httpOK(userService.findAll(tenantId));
+    public ResponseEntity<ResponseDTO<List<UserResponse>>> findAll(
+            @PathVariable UUID tenantId,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(500) int limit,
+            @RequestParam(defaultValue = "0") @Min(0) int offset) {
+        return ResponsePagingHelper.httpOK(userService.findAll(tenantId, limit, offset),
+                new PagingDTO(limit, offset, userService.count(tenantId)));
     }
 
     @PutMapping("/{userId}/roles")

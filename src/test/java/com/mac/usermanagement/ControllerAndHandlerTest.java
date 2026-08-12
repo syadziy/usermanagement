@@ -30,7 +30,7 @@ class ControllerAndHandlerTest {
     void authAndTenantControllersDelegate() {
         AuthService auth = mock(AuthService.class);
         LoginRequest loginRequest = new LoginRequest("acme-id", "owner", "strong-password");
-        LoginResponse loginResponse = new LoginResponse("Bearer", "token", NOW, TENANT_ID, USER_ID,
+        LoginResponse loginResponse = new LoginResponse("Bearer", "token", NOW, TENANT_ID, "acme-id", USER_ID,
                 Set.of("OWNER"), Set.of("tenant:update"));
         when(auth.login(loginRequest)).thenReturn(loginResponse);
         AuthCookieService cookies = mock(AuthCookieService.class);
@@ -40,6 +40,7 @@ class ControllerAndHandlerTest {
         AuthSessionResponse session = authController.login(loginRequest, httpRequest, httpResponse)
                 .getBody().getData();
         assertEquals(TENANT_ID, session.tenantId());
+        assertEquals("acme-id", session.tenantKey());
         assertEquals("owner", session.username());
         verify(cookies).issue(httpResponse, "token", NOW);
         assertEquals(USER_ID.toString(), httpRequest.getAttribute(
@@ -53,11 +54,14 @@ class ControllerAndHandlerTest {
         TenantResponse tenantResponse = new TenantResponse(TENANT_ID, "acme-id", "ACME", 1800, USER_ID, NOW);
         when(tenants.register(register)).thenReturn(tenantResponse);
         TenantController controller = new TenantController(tenants);
+        when(tenants.findAll(10, 0)).thenReturn(List.of());
+        when(tenants.count()).thenReturn(14L);
         var created = controller.register(register);
         assertEquals(HttpStatus.CREATED, created.getStatusCode());
         assertEquals("/api/v1/tenants/" + TENANT_ID, created.getHeaders().getLocation().toString());
         assertEquals(3600L, controller.updateTokenPolicy(
                 TENANT_ID, new UpdateTokenPolicyRequest(3600)).getBody().getData().get("accessTokenTtlSeconds"));
+        assertEquals(14, controller.findAll(10, 0).getBody().getPaging().getTotalRecord());
         verify(tenants).updateTokenPolicy(TENANT_ID, 3600);
     }
 
@@ -68,10 +72,13 @@ class ControllerAndHandlerTest {
         CreateUserRequest request = new CreateUserRequest("operator", "operator@example.com", "strong-password");
         UserResponse response = user();
         when(service.create(TENANT_ID, request)).thenReturn(response);
-        when(service.findAll(TENANT_ID)).thenReturn(List.of(response));
+        when(service.findAll(TENANT_ID, 10, 0)).thenReturn(List.of(response));
+        when(service.count(TENANT_ID)).thenReturn(21L);
         when(service.assignRoles(TENANT_ID, USER_ID, Set.of(ROLE_ID))).thenReturn(response);
         assertEquals(HttpStatus.CREATED, controller.create(TENANT_ID, request).getStatusCode());
-        assertEquals(1, controller.findAll(TENANT_ID).getBody().getData().size());
+        var users = controller.findAll(TENANT_ID, 10, 0).getBody();
+        assertEquals(1, users.getData().size());
+        assertEquals(21, users.getPaging().getTotalRecord());
         assertSame(response, controller.assignRoles(
                 TENANT_ID, USER_ID, new AssignRolesRequest(Set.of(ROLE_ID))).getBody().getData());
     }
@@ -84,10 +91,13 @@ class ControllerAndHandlerTest {
         RoleResponse role = new RoleResponse(ROLE_ID, TENANT_ID, "REPORT_VIEWER", null,
                 false, Set.of("report:view"), NOW);
         when(service.createRole(TENANT_ID, roleRequest)).thenReturn(role);
-        when(service.findRoles(TENANT_ID)).thenReturn(List.of(role));
+        when(service.findRoles(TENANT_ID, 10, 0)).thenReturn(List.of(role));
+        when(service.countRoles(TENANT_ID)).thenReturn(12L);
         when(service.replacePermissions(TENANT_ID, ROLE_ID, Set.of("report:download"))).thenReturn(role);
         assertEquals(HttpStatus.CREATED, controller.createRole(TENANT_ID, roleRequest).getStatusCode());
-        assertEquals(1, controller.findRoles(TENANT_ID).getBody().getData().size());
+        var roles = controller.findRoles(TENANT_ID, 10, 0).getBody();
+        assertEquals(1, roles.getData().size());
+        assertEquals(12, roles.getPaging().getTotalRecord());
         assertSame(role, controller.replacePermissions(TENANT_ID, ROLE_ID,
                 new UpdateRolePermissionsRequest(Set.of("report:download"))).getBody().getData());
 
@@ -95,10 +105,14 @@ class ControllerAndHandlerTest {
         PermissionResponse permission = new PermissionResponse(UUID.randomUUID(), "report", "view",
                 "report:view", null);
         when(service.createPermission(TENANT_ID, permissionRequest)).thenReturn(permission);
-        when(service.findPermissions(TENANT_ID)).thenReturn(List.of(permission));
+        when(service.findPermissions(TENANT_ID, 10, 10)).thenReturn(List.of(permission));
+        when(service.countPermissions(TENANT_ID)).thenReturn(23L);
         assertEquals(HttpStatus.CREATED,
                 controller.createPermission(TENANT_ID, permissionRequest).getStatusCode());
-        assertEquals(1, controller.findPermissions(TENANT_ID).getBody().getData().size());
+        var permissions = controller.findPermissions(TENANT_ID, 10, 10).getBody();
+        assertEquals(1, permissions.getData().size());
+        assertEquals(10, permissions.getPaging().getOffset());
+        assertEquals(23, permissions.getPaging().getTotalRecord());
     }
 
     @Test

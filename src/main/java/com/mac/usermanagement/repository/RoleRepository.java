@@ -25,7 +25,15 @@ public interface RoleRepository {
 
     List<Role> findAll(UUID tenantId);
 
+    List<Role> findAll(UUID tenantId, int limit, int offset);
+
+    long countRoles(UUID tenantId);
+
     List<Permission> findPermissions(UUID tenantId);
+
+    List<Permission> findPermissions(UUID tenantId, int limit, int offset);
+
+    long countPermissions(UUID tenantId);
 
     boolean allExist(UUID tenantId, Set<UUID> roleIds);
 }

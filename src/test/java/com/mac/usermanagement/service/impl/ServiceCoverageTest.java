@@ -68,7 +68,7 @@ class ServiceCoverageTest {
         assertTrue(seededPermissions.containsAll(Set.of(
                 "alert:write", "alert:read-recipients", "alert:manage-recipients",
                 "alert:read-notifications",
-                "audit:read", "scheduler:read", "scheduler:manage")));
+                "audit:read", "gateway-log:read", "scheduler:read", "scheduler:manage")));
         ArgumentCaptor<Role> roleCaptor = ArgumentCaptor.forClass(Role.class);
         verify(roles).insert(roleCaptor.capture());
         assertEquals("SUPERADMIN", roleCaptor.getValue().name());
@@ -114,6 +114,7 @@ class ServiceCoverageTest {
         LoginResponse response = service.login(new LoginRequest(" ACME-ID ", " owner ", "strong-password"));
         assertEquals("signed-token", response.accessToken());
         assertEquals(NOW.plusSeconds(1800), response.expiresAt());
+        assertEquals("acme-id", response.tenantKey());
         assertEquals(Set.of("tenant:update"), response.permissions());
         ArgumentCaptor<JwtEncoderParameters> parametersCaptor =
                 ArgumentCaptor.forClass(JwtEncoderParameters.class);
@@ -141,6 +142,40 @@ class ServiceCoverageTest {
     }
 
     @Test
+    void platformSuperadminTenantReceivesEveryCatalogPermission() {
+        TenantRepository tenants = mock(TenantRepository.class);
+        UserRepository users = mock(UserRepository.class);
+        PasswordEncoder encoder = mock(PasswordEncoder.class);
+        JwtEncoder jwtEncoder = mock(JwtEncoder.class);
+        Tenant tenant = new Tenant(TENANT_ID, "superadmin", "Platform Superadmin", 1800, true, NOW);
+        UserAccount user = new UserAccount(USER_ID, TENANT_ID, "superadmin",
+                "superadmin@platform.local", "hash", true, NOW, NOW);
+        when(tenants.findByKey("superadmin")).thenReturn(Optional.of(tenant));
+        when(users.findByUsername(TENANT_ID, "superadmin")).thenReturn(Optional.of(user));
+        when(encoder.matches("strong-password", "hash")).thenReturn(true);
+        when(users.findAccess(TENANT_ID, USER_ID))
+                .thenReturn(new UserAccess(Set.of("SUPERADMIN"), Set.of()));
+        when(jwtEncoder.encode(any())).thenReturn(Jwt.withTokenValue("signed-token")
+                .header("alg", "RS256").subject(USER_ID.toString()).issuedAt(NOW)
+                .expiresAt(NOW.plusSeconds(1800)).build());
+        AuthServiceImpl service = new AuthServiceImpl(tenants, users, encoder, jwtEncoder,
+                new JwtProperties("http://issuer/", "test-key", null, null, true,
+                        List.of("api-gateway")), CLOCK);
+
+        LoginResponse response = service.login(
+                new LoginRequest("superadmin", "superadmin", "strong-password"));
+
+        Set<String> expected = AuthorizationCatalog.DEFAULT_PERMISSIONS.stream()
+                .map(permission -> permission.resource() + ":" + permission.action())
+                .collect(java.util.stream.Collectors.toSet());
+        assertEquals(expected, response.permissions());
+        ArgumentCaptor<JwtEncoderParameters> parameters = ArgumentCaptor.forClass(JwtEncoderParameters.class);
+        verify(jwtEncoder).encode(parameters.capture());
+        assertEquals("superadmin", parameters.getValue().getClaims().getClaim("tenant_key"));
+        assertEquals(expected, parameters.getValue().getClaims().getClaim("permissions"));
+    }
+
+    @Test
     void createsListsAndAssignsUsers() {
         UserRepository users = mock(UserRepository.class);
         RoleRepository roles = mock(RoleRepository.class);
@@ -155,11 +190,11 @@ class ServiceCoverageTest {
         assertEquals("operator", created.username());
         assertEquals("operator@example.com", created.email());
 
-        when(users.findAll(TENANT_ID)).thenReturn(List.of(user()));
+        when(users.findAll(TENANT_ID, 10, 0)).thenReturn(List.of(user()));
         UserAccess viewerAccess = new UserAccess(Set.of("VIEWER"), Set.of("user:view"));
         when(users.findAccess(TENANT_ID, Set.of(USER_ID))).thenReturn(Map.of(USER_ID, viewerAccess));
         when(users.findAccess(TENANT_ID, USER_ID)).thenReturn(viewerAccess);
-        assertEquals(Set.of("VIEWER"), service.findAll(TENANT_ID).getFirst().roles());
+        assertEquals(Set.of("VIEWER"), service.findAll(TENANT_ID, 10, 0).getFirst().roles());
 
         when(users.findById(TENANT_ID, USER_ID)).thenReturn(Optional.of(user()));
         when(roles.allExist(TENANT_ID, Set.of(ROLE_ID))).thenReturn(true);
@@ -190,8 +225,8 @@ class ServiceCoverageTest {
 
         Role role = new Role(ROLE_ID, TENANT_ID, "REPORT_VIEWER", null, false,
                 Set.of("report:view"), NOW);
-        when(roles.findAll(TENANT_ID)).thenReturn(List.of(role));
-        assertEquals("REPORT_VIEWER", service.findRoles(TENANT_ID).getFirst().name());
+        when(roles.findAll(TENANT_ID, 10, 0)).thenReturn(List.of(role));
+        assertEquals("REPORT_VIEWER", service.findRoles(TENANT_ID, 10, 0).getFirst().name());
         when(roles.findById(TENANT_ID, ROLE_ID)).thenReturn(Optional.of(role));
         assertEquals(Set.of("report:download"),
                 service.replacePermissions(TENANT_ID, ROLE_ID, Set.of("report:download")).permissions());
@@ -204,8 +239,8 @@ class ServiceCoverageTest {
         assertEquals("report:download", permission.authority());
         Permission model = new Permission(permission.permissionId(), TENANT_ID,
                 "report", "download", null, NOW);
-        when(roles.findPermissions(TENANT_ID)).thenReturn(List.of(model));
-        assertEquals("report:download", service.findPermissions(TENANT_ID).getFirst().authority());
+        when(roles.findPermissions(TENANT_ID, 10, 0)).thenReturn(List.of(model));
+        assertEquals("report:download", service.findPermissions(TENANT_ID, 10, 0).getFirst().authority());
 
         RoleResponse withoutPermissions = service.createRole(TENANT_ID,
                 new CreateRoleRequest("EMPTY_ROLE", " ", null));
@@ -227,6 +262,13 @@ class ServiceCoverageTest {
         assertThrows(AccessDeniedException.class, () -> guard.require(TENANT_ID));
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(jwt("bad"), null));
         assertThrows(AccessDeniedException.class, () -> guard.require(TENANT_ID));
+
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken(jwt(TENANT_ID.toString(), "acme-id"), null));
+        assertThrows(AccessDeniedException.class, guard::requirePlatformTenant);
+        SecurityContextHolder.getContext().setAuthentication(
+                new TestingAuthenticationToken(jwt(TENANT_ID.toString(), "superadmin"), null));
+        assertDoesNotThrow(guard::requirePlatformTenant);
     }
 
     private static Tenant tenant() {
@@ -238,7 +280,15 @@ class ServiceCoverageTest {
     }
 
     private static Jwt jwt(String tenantId) {
-        return Jwt.withTokenValue("token").header("alg", "RS256").subject(USER_ID.toString())
-                .issuedAt(NOW).expiresAt(NOW.plusSeconds(60)).claim("tenant_id", tenantId).build();
+        return jwt(tenantId, null);
+    }
+
+    private static Jwt jwt(String tenantId, String tenantKey) {
+        Jwt.Builder builder = Jwt.withTokenValue("token").header("alg", "RS256").subject(USER_ID.toString())
+                .issuedAt(NOW).expiresAt(NOW.plusSeconds(60)).claim("tenant_id", tenantId);
+        if (tenantKey != null) {
+            builder.claim("tenant_key", tenantKey);
+        }
+        return builder.build();
     }
 }

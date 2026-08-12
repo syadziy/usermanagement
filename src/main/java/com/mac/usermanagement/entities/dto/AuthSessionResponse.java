@@ -9,19 +9,21 @@ import org.springframework.security.oauth2.jwt.Jwt;
 public record AuthSessionResponse(
         Instant expiresAt,
         UUID tenantId,
+        String tenantKey,
         UUID userId,
         String username,
         Set<String> roles,
         Set<String> permissions) {
 
     public static AuthSessionResponse from(LoginResponse response, String username) {
-        return new AuthSessionResponse(response.expiresAt(), response.tenantId(), response.userId(),
+        return new AuthSessionResponse(response.expiresAt(), response.tenantId(), response.tenantKey(), response.userId(),
                 username, response.roles(), response.permissions());
     }
 
     public static AuthSessionResponse from(Jwt jwt) {
         return new AuthSessionResponse(jwt.getExpiresAt(),
-                UUID.fromString(jwt.getClaimAsString("tenant_id")), UUID.fromString(jwt.getSubject()),
+                UUID.fromString(jwt.getClaimAsString("tenant_id")), jwt.getClaimAsString("tenant_key"),
+                UUID.fromString(jwt.getSubject()),
                 jwt.getClaimAsString("username"), claimSet(jwt, "roles"), claimSet(jwt, "permissions"));
     }
 

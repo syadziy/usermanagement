@@ -15,5 +15,9 @@ public interface TenantRepository {
 
     List<Tenant> findAll();
 
+    List<Tenant> findAll(int limit, int offset);
+
+    long count();
+
     void updateTokenTtl(UUID tenantId, long ttlSeconds);
 }
