@@ -91,6 +91,8 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 - Browser authentication uses the `ACCESS_TOKEN` cookie issued by login. The cookie must remain
   `HttpOnly`, use configured `Secure`, `SameSite=Strict`, path `/`, and expire with the JWT.
   Never return the JWT in browser-facing login/session response data or expose it to JavaScript.
+- Login, logout, dan tenant registration harus mengabaikan Bearer/cookie lama agar token invalid
+  tidak memblokir endpoint pemulihan sesi sebelum controller berjalan.
 - Preserve `GET /api/v1/auth/session` for restoring session metadata after refresh and
   `POST /api/v1/auth/logout` for expiring the cookie. Header Bearer authentication remains supported
   for Postman and service clients.
