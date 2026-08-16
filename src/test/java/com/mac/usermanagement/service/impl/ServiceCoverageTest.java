@@ -61,7 +61,7 @@ class ServiceCoverageTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<AuthorizationCatalog.PermissionDefinition>> permissionsCaptor =
                 ArgumentCaptor.forClass(List.class);
-        verify(roles).seedPermissions(eq(response.tenantId()), permissionsCaptor.capture(), eq(NOW));
+        verify(roles).seedPermissions(permissionsCaptor.capture(), eq(NOW));
         Set<String> seededPermissions = permissionsCaptor.getValue().stream()
                 .map(permission -> permission.resource() + ":" + permission.action())
                 .collect(java.util.stream.Collectors.toSet());
@@ -237,10 +237,11 @@ class ServiceCoverageTest {
         PermissionResponse permission = service.createPermission(TENANT_ID,
                 new CreatePermissionRequest(" Report ", " Download ", " download reports "));
         assertEquals("report:download", permission.authority());
-        Permission model = new Permission(permission.permissionId(), TENANT_ID,
-                "report", "download", null, NOW);
-        when(roles.findPermissions(TENANT_ID, 10, 0)).thenReturn(List.of(model));
+        Permission model = new Permission(permission.permissionId(), "report", "download", null, NOW);
+        when(roles.findPermissions(10, 0)).thenReturn(List.of(model));
         assertEquals("report:download", service.findPermissions(TENANT_ID, 10, 0).getFirst().authority());
+        verify(guard).requirePlatformTenant();
+        verify(guard, atLeastOnce()).require(TENANT_ID);
 
         RoleResponse withoutPermissions = service.createRole(TENANT_ID,
                 new CreateRoleRequest("EMPTY_ROLE", " ", null));

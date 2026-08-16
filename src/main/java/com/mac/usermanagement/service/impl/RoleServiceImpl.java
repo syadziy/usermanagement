@@ -69,8 +69,8 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public PermissionResponse createPermission(UUID tenantId, CreatePermissionRequest request) {
-        tenantAccessGuard.require(tenantId);
-        Permission permission = roleRepository.insertPermission(new Permission(UUID.randomUUID(), tenantId,
+        tenantAccessGuard.requirePlatformTenant();
+        Permission permission = roleRepository.insertPermission(new Permission(UUID.randomUUID(),
                 request.resource().trim().toLowerCase(), request.action().trim().toLowerCase(),
                 normalize(request.description()), clock.instant()));
         return IdentityMapper.toResponse(permission);
@@ -79,14 +79,14 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public List<PermissionResponse> findPermissions(UUID tenantId, int limit, int offset) {
         tenantAccessGuard.require(tenantId);
-        return roleRepository.findPermissions(tenantId, limit, offset).stream()
+        return roleRepository.findPermissions(limit, offset).stream()
                 .map(IdentityMapper::toResponse).toList();
     }
 
     @Override
     public long countPermissions(UUID tenantId) {
         tenantAccessGuard.require(tenantId);
-        return roleRepository.countPermissions(tenantId);
+        return roleRepository.countPermissions();
     }
 
     private static String normalize(String value) {

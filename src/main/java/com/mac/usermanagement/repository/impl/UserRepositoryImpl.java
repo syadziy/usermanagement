@@ -107,7 +107,7 @@ public class UserRepositoryImpl implements UserRepository {
                 FROM user_role ur
                 JOIN role r ON r.id = ur.role_id AND r.tenant_id = ur.tenant_id
                 LEFT JOIN role_permission rp ON rp.role_id = r.id AND rp.tenant_id = r.tenant_id
-                LEFT JOIN permission p ON p.id = rp.permission_id AND p.tenant_id = rp.tenant_id
+                LEFT JOIN permission p ON p.id = rp.permission_id
                 WHERE ur.tenant_id = :tenantId AND ur.user_id IN (:userIds)
                 ORDER BY ur.user_id, r.name, p.resource, p.action
                 """, Map.of("tenantId", tenantId, "userIds", userIds), resultSet -> {

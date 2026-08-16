@@ -64,7 +64,7 @@ public class TenantServiceImpl implements TenantService {
         Tenant tenant = tenantRepository.insert(new Tenant(UUID.randomUUID(),
                 request.tenantKey().trim().toLowerCase(), request.tenantName().trim(),
                 request.accessTokenTtlSeconds(), true, now));
-        roleRepository.seedPermissions(tenant.id(), DEFAULT_PERMISSIONS, now);
+        roleRepository.seedPermissions(DEFAULT_PERMISSIONS, now);
         Role ownerRole = roleRepository.insert(new Role(UUID.randomUUID(), tenant.id(), SUPERADMIN_ROLE,
                 "Full tenant administration access", true, Set.of(), now));
         roleRepository.assignAllPermissions(tenant.id(), ownerRole.id(), now);

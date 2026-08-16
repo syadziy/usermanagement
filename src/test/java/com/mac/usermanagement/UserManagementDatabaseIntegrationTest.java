@@ -50,18 +50,20 @@ class UserManagementDatabaseIntegrationTest {
                 """, Integer.class);
         assertThat(count).isEqualTo(6);
         Boolean bootstrapMigrationApplied = jdbcTemplate.queryForObject("""
-                SELECT success FROM flyway_schema_history WHERE version = '7'
+                SELECT success FROM flyway_schema_history WHERE version = '9'
                 """, Boolean.class);
         assertThat(bootstrapMigrationApplied).isTrue();
 
         Map<String, Object> bootstrap = jdbcTemplate.queryForMap("""
                 SELECT tenant.tenant_key,
-                       COUNT(DISTINCT permission.id) AS permission_count,
+                       COUNT(DISTINCT role_permission.permission_id) AS permission_count,
                        COUNT(DISTINCT role.id) AS role_count,
                        COUNT(DISTINCT user_account.id) AS user_count
                 FROM tenant
-                LEFT JOIN permission ON permission.tenant_id = tenant.id
                 LEFT JOIN role ON role.tenant_id = tenant.id
+                LEFT JOIN role_permission
+                  ON role_permission.role_id = role.id
+                 AND role_permission.tenant_id = tenant.id
                 LEFT JOIN user_account ON user_account.tenant_id = tenant.id
                 WHERE tenant.tenant_key = 'syadziy-company'
                 GROUP BY tenant.id, tenant.tenant_key
@@ -86,6 +88,14 @@ class UserManagementDatabaseIntegrationTest {
         assertThat(platformSuperadmin.get("username")).isEqualTo("superadmin");
         assertThat(platformSuperadmin.get("role_name")).isEqualTo("SUPERADMIN");
         assertThat(((Number) platformSuperadmin.get("permission_count")).intValue()).isEqualTo(23);
+
+        Integer permissionTenantColumns = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM information_schema.columns
+                WHERE table_schema = 'public'
+                  AND table_name = 'permission'
+                  AND column_name = 'tenant_id'
+                """, Integer.class);
+        assertThat(permissionTenantColumns).isZero();
     }
 
     @Test
@@ -147,12 +157,11 @@ class UserManagementDatabaseIntegrationTest {
                 JOIN superadmin_migration_test.role role ON role.id = role_permission.role_id
                 WHERE role.tenant_id = ? AND role.name = 'SUPERADMIN'
                 """, Integer.class, tenantId);
-        Integer tenantPermissions = jdbcTemplate.queryForObject("""
+        Integer globalPermissions = jdbcTemplate.queryForObject("""
                 SELECT COUNT(*)
                 FROM superadmin_migration_test.permission
-                WHERE tenant_id = ?
-                """, Integer.class, tenantId);
+                """, Integer.class);
         assertThat(assignedRoles).isEqualTo(1);
-        assertThat(assignedPermissions).isEqualTo(tenantPermissions);
+        assertThat(assignedPermissions).isEqualTo(globalPermissions);
     }
 }

@@ -114,8 +114,7 @@ class RepositoryCoverageTest {
         Permission permission = permission();
         assertSame(role, repository.insert(role));
         assertSame(permission, repository.insertPermission(permission));
-        repository.seedPermissions(TENANT_ID,
-                List.of(new PermissionDefinition("user", "view", "view users")), NOW);
+        repository.seedPermissions(List.of(new PermissionDefinition("user", "view", "view users")), NOW);
         repository.assignAllPermissions(TENANT_ID, ROLE_ID, NOW);
 
         doAnswer(invocation -> {
@@ -126,12 +125,12 @@ class RepositoryCoverageTest {
         assertEquals(Set.of("user:view"), repository.findById(TENANT_ID, ROLE_ID).orElseThrow().permissions());
         assertEquals(1, repository.findAll(TENANT_ID).size());
 
-        when(jdbc.query(contains("FROM permission WHERE"), anyMap(), any(RowMapper.class)))
+        when(jdbc.query(contains("FROM permission ORDER BY"), anyMap(), any(RowMapper.class)))
                 .thenAnswer(invocation -> {
                     RowMapper<Permission> mapper = invocation.getArgument(2);
                     return List.of(mapper.mapRow(permissionResultSet(), 0));
                 });
-        assertEquals(List.of(permission), repository.findPermissions(TENANT_ID));
+        assertEquals(List.of(permission), repository.findPermissions());
         repository.replacePermissions(TENANT_ID, ROLE_ID, Set.of("user:view"), NOW);
         verify(jdbc).batchUpdate(contains("INSERT INTO role_permission"), any(MapSqlParameterSource[].class));
         assertThrows(IllegalArgumentException.class,
@@ -176,7 +175,7 @@ class RepositoryCoverageTest {
     }
 
     private static Permission permission() {
-        return new Permission(PERMISSION_ID, TENANT_ID, "user", "view", "view users", NOW);
+        return new Permission(PERMISSION_ID, "user", "view", "view users", NOW);
     }
 
     private static ResultSet tenantResultSet() throws Exception {
@@ -219,7 +218,6 @@ class RepositoryCoverageTest {
     private static ResultSet permissionResultSet() throws Exception {
         ResultSet rs = mock(ResultSet.class);
         when(rs.getObject("id", UUID.class)).thenReturn(PERMISSION_ID);
-        when(rs.getObject("tenant_id", UUID.class)).thenReturn(TENANT_ID);
         when(rs.getString("resource")).thenReturn("user");
         when(rs.getString("action")).thenReturn("view");
         when(rs.getString("description")).thenReturn("view users");

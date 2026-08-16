@@ -15,7 +15,7 @@ public interface RoleRepository {
 
     Permission insertPermission(Permission permission);
 
-    void seedPermissions(UUID tenantId, List<PermissionDefinition> definitions, Instant createdAt);
+    void seedPermissions(List<PermissionDefinition> definitions, Instant createdAt);
 
     void assignAllPermissions(UUID tenantId, UUID roleId, Instant assignedAt);
 
@@ -29,11 +29,11 @@ public interface RoleRepository {
 
     long countRoles(UUID tenantId);
 
-    List<Permission> findPermissions(UUID tenantId);
+    List<Permission> findPermissions();
 
-    List<Permission> findPermissions(UUID tenantId, int limit, int offset);
+    List<Permission> findPermissions(int limit, int offset);
 
-    long countPermissions(UUID tenantId);
+    long countPermissions();
 
     boolean allExist(UUID tenantId, Set<UUID> roleIds);
 }

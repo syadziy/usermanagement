@@ -51,24 +51,30 @@ public class RoleRepositoryImpl implements RoleRepository {
     public Permission insertPermission(Permission permission) {
         try {
             jdbcTemplate.update("""
-                    INSERT INTO permission (id, tenant_id, resource, action, description, created_at)
-                    VALUES (:id, :tenantId, :resource, :action, :description, :createdAt)
+                    INSERT INTO permission (id, resource, action, description, created_at)
+                    VALUES (:id, :resource, :action, :description, :createdAt)
                     """, new MapSqlParameterSource().addValue("id", permission.id())
-                    .addValue("tenantId", permission.tenantId()).addValue("resource", permission.resource())
+                    .addValue("resource", permission.resource())
                     .addValue("action", permission.action()).addValue("description", permission.description())
                     .addValue("createdAt", permission.createdAt().atOffset(ZoneOffset.UTC),
                             Types.TIMESTAMP_WITH_TIMEZONE));
             return permission;
         } catch (DuplicateKeyException exception) {
-            throw new IdentityConflictException("Permission already exists in this tenant", exception);
+            throw new IdentityConflictException("Permission already exists", exception);
         }
     }
 
     @Override
-    public void seedPermissions(UUID tenantId, List<PermissionDefinition> definitions, Instant createdAt) {
+    public void seedPermissions(List<PermissionDefinition> definitions, Instant createdAt) {
         for (PermissionDefinition definition : definitions) {
-            insertPermission(new Permission(UUID.randomUUID(), tenantId, definition.resource(),
-                    definition.action(), definition.description(), createdAt));
+            jdbcTemplate.update("""
+                    INSERT INTO permission (id, resource, action, description, created_at)
+                    VALUES (:id, :resource, :action, :description, :createdAt)
+                    ON CONFLICT (resource, action) DO NOTHING
+                    """, new MapSqlParameterSource().addValue("id", UUID.randomUUID())
+                    .addValue("resource", definition.resource()).addValue("action", definition.action())
+                    .addValue("description", definition.description())
+                    .addValue("createdAt", createdAt.atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE));
         }
     }
 
@@ -76,7 +82,7 @@ public class RoleRepositoryImpl implements RoleRepository {
     public void assignAllPermissions(UUID tenantId, UUID roleId, Instant assignedAt) {
         jdbcTemplate.update("""
                 INSERT INTO role_permission (tenant_id, role_id, permission_id, assigned_at)
-                SELECT :tenantId, :roleId, id, :assignedAt FROM permission WHERE tenant_id = :tenantId
+                SELECT :tenantId, :roleId, id, :assignedAt FROM permission
                 """, new MapSqlParameterSource().addValue("tenantId", tenantId)
                 .addValue("roleId", roleId)
                 .addValue("assignedAt", assignedAt.atOffset(ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE));
@@ -85,7 +91,7 @@ public class RoleRepositoryImpl implements RoleRepository {
     @Override
     public void replacePermissions(UUID tenantId, UUID roleId, Set<String> authorities, Instant assignedAt) {
         Map<String, UUID> known = new LinkedHashMap<>();
-        for (Permission permission : findPermissions(tenantId)) {
+        for (Permission permission : findPermissions()) {
             known.put(permission.authority(), permission.id());
         }
         if (!known.keySet().containsAll(authorities)) {
@@ -132,7 +138,7 @@ public class RoleRepositoryImpl implements RoleRepository {
                        p.resource, p.action
                 FROM selected_roles r
                 LEFT JOIN role_permission rp ON rp.role_id = r.id AND rp.tenant_id = r.tenant_id
-                LEFT JOIN permission p ON p.id = rp.permission_id AND p.tenant_id = rp.tenant_id
+                LEFT JOIN permission p ON p.id = rp.permission_id
                 ORDER BY r.name, r.id, p.resource, p.action
                 """, parameters, (org.springframework.jdbc.core.RowCallbackHandler)
                         resultSet -> collectRole(roles, resultSet));
@@ -160,7 +166,7 @@ public class RoleRepositoryImpl implements RoleRepository {
                        p.resource, p.action
                 FROM role r
                 LEFT JOIN role_permission rp ON rp.role_id = r.id AND rp.tenant_id = r.tenant_id
-                LEFT JOIN permission p ON p.id = rp.permission_id AND p.tenant_id = rp.tenant_id
+                LEFT JOIN permission p ON p.id = rp.permission_id
                 WHERE r.tenant_id = :tenantId
                 """ + rolePredicate + " ORDER BY r.name, p.resource, p.action", parameters, resultSet -> {
             collectRole(roles, resultSet);
@@ -169,38 +175,35 @@ public class RoleRepositoryImpl implements RoleRepository {
     }
 
     @Override
-    public List<Permission> findPermissions(UUID tenantId) {
+    public List<Permission> findPermissions() {
         return jdbcTemplate.query("""
-                SELECT id, tenant_id, resource, action, description, created_at
-                FROM permission WHERE tenant_id = :tenantId ORDER BY resource, action
-                """, Map.of("tenantId", tenantId), (resultSet, rowNumber) -> new Permission(
-                resultSet.getObject("id", UUID.class), resultSet.getObject("tenant_id", UUID.class),
+                SELECT id, resource, action, description, created_at
+                FROM permission ORDER BY resource, action
+                """, Map.of(), (resultSet, rowNumber) -> new Permission(
+                resultSet.getObject("id", UUID.class),
                 resultSet.getString("resource"), resultSet.getString("action"),
                 resultSet.getString("description"), resultSet.getTimestamp("created_at").toInstant()));
     }
 
     @Override
-    public List<Permission> findPermissions(UUID tenantId, int limit, int offset) {
+    public List<Permission> findPermissions(int limit, int offset) {
         return jdbcTemplate.query("""
-                SELECT id, tenant_id, resource, action, description, created_at
+                SELECT id, resource, action, description, created_at
                 FROM permission
-                WHERE tenant_id = :tenantId
                 ORDER BY resource, action, id
                 LIMIT :limit OFFSET :offset
-                """, Map.of("tenantId", tenantId, "limit", limit, "offset", offset),
+                """, Map.of("limit", limit, "offset", offset),
                 (resultSet, rowNumber) -> new Permission(
                         resultSet.getObject("id", UUID.class),
-                        resultSet.getObject("tenant_id", UUID.class),
                         resultSet.getString("resource"), resultSet.getString("action"),
                         resultSet.getString("description"),
                         resultSet.getTimestamp("created_at").toInstant()));
     }
 
     @Override
-    public long countPermissions(UUID tenantId) {
+    public long countPermissions() {
         Long total = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM permission WHERE tenant_id = :tenantId",
-                Map.of("tenantId", tenantId), Long.class);
+                "SELECT COUNT(*) FROM permission", Map.of(), Long.class);
         return total == null ? 0 : total;
     }
 

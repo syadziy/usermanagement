@@ -286,8 +286,12 @@ role baru tersebut.
 V5 tidak membuat username atau password default. Credential user utama tetap berasal dari proses
 registrasi tenant dan password tetap disimpan sebagai BCrypt hash.
 
+Migration V9 mengubah `permission` menjadi katalog global dengan authority unik berdasarkan
+`(resource, action)`. Role dan assignment `role_permission` tetap tenant-scoped, sehingga semua
+tenant memakai definisi permission yang sama tanpa membuka assignment role lintas tenant.
+
 Unique constraint dan foreign key komposit memastikan username/email unik per tenant serta
-mencegah assignment user, role, atau permission lintas tenant.
+mencegah assignment user atau role lintas tenant.
 
 ## Observability
 

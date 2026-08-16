@@ -5,7 +5,6 @@ import java.util.UUID;
 
 public record Permission(
         UUID id,
-        UUID tenantId,
         String resource,
         String action,
         String description,

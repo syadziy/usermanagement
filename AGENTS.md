@@ -7,7 +7,8 @@ username/password authentication, tenant-specific JWT expiry, role, dan action-l
 
 Prioritas desain:
 
-- Semua identity dan authorization data terisolasi oleh `tenant_id`.
+- User, role, dan assignment authorization terisolasi oleh `tenant_id`; katalog permission bersifat
+  global dan dapat dipakai semua tenant.
 - Password hanya disimpan sebagai BCrypt hash dan tidak pernah dilog.
 - JWT RS256 selalu memiliki issuer, audience, subject, issued-at, expiry, tenant claim, dan `kid`.
 - Hanya service ini yang menyimpan private key; consumer memvalidasi melalui discovery dan JWKS.
@@ -70,7 +71,10 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 
 ## Multi-Tenancy and Database
 
-- Every user, role, permission, and join query must include `tenant_id`.
+- Every user, role, user-role, and role-permission assignment query must include `tenant_id`.
+- `permission` is a global catalog keyed by unique `(resource, action)` and must never be duplicated
+  per tenant. Tenant isolation belongs to `role_permission`, whose role composite foreign key must
+  prevent cross-tenant assignments.
 - Every path tenant ID must be compared with the authenticated `tenant_id` claim.
 - Never trust a request-supplied tenant ID without `TenantAccessGuard`.
 - Use `NamedParameterJdbcTemplate`; never concatenate request-derived SQL.
@@ -87,8 +91,11 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
   the tenant-scoped `SUPERADMIN` role. `TenantAccessGuard.require` permits this platform tenant to
   manage identity data across a selected tenant; all other tenants remain restricted to their own
   signed `tenant_id`. Cross-tenant requests must continue through API Gateway audit logging.
-- New permission migrations must also insert the permission into the `superadmin` tenant and assign
-  it to its system `SUPERADMIN` role. Keep `AuthorizationCatalog.DEFAULT_PERMISSIONS` synchronized.
+- Only `tenant_key=superadmin` may create entries in the global permission catalog. All authenticated
+  tenants may list that catalog and assign entries to roles in a tenant they are allowed to manage.
+- New permission migrations must insert the authority once into the global catalog and explicitly
+  assign it to the applicable existing roles. Keep `AuthorizationCatalog.DEFAULT_PERMISSIONS`
+  synchronized so newly registered tenant owner roles receive the complete catalog.
 - Browser authentication uses the `ACCESS_TOKEN` cookie issued by login. The cookie must remain
   `HttpOnly`, use configured `Secure`, `SameSite=Strict`, path `/`, and expire with the JWT.
   Never return the JWT in browser-facing login/session response data or expose it to JavaScript.
